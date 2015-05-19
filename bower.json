@@ -1,0 +1,24 @@
+{
+    "name": "the-web-dev-ninja-blog",
+    "version": "1.0.0",
+    "homepage": "https://github.com/bardius/the-web-dev-ninja-blog",
+    "authors": [
+        "George Bardis @bardius george@bardis.info"
+    ],
+    "description": "Blog based on Symfony2 BardisCMS",
+    "license": "MIT",
+    "private": true,
+    "ignore": [
+        "**/.*",
+        "node_modules",
+        "bower_components",
+        "test",
+        "tests"
+    ],
+    "dependencies": {
+        "jquery-ias": "~2.2.1",
+        "modernizr": "~2.8.3",
+        "jasmine-jquery": "~2.1.0",
+        "foundation": "~5.5.2"
+    }
+}
