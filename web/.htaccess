@@ -4,12 +4,10 @@
 
     # set some environment variables depending on host
     RewriteRule .* - [E=ENVIRONMENT:prod]
-    RewriteCond %{HTTP_HOST} ^bardiscms.prod [NC]
+    RewriteCond %{HTTP_HOST} ^the-web-dev.ninja [NC]
     RewriteRule .* - [E=ENVIRONMENT:prod]
-    RewriteCond %{HTTP_HOST} ^bardiscms.dev [NC]
+    RewriteCond %{HTTP_HOST} blog-ci.the-web-dev.ninja [NC]
     RewriteRule .* - [E=ENVIRONMENT:dev]
-    RewriteCond %{HTTP_HOST} ^bardiscms.test [NC]
-    RewriteRule .* - [E=ENVIRONMENT:test]
 
     #### Redirect non www to www ####
     # RewriteCond %{HTTP_HOST} ^domain.com [NC]
@@ -20,7 +18,7 @@
 
     #### Sample Redirects
     #### Redirect 301 http://www.domain.com/home http://www.domain.com/
-	
+
     #### Prevent hotlinking ####
     # RewriteCond %{HTTP_REFERER} !^$
     # RewriteCond %{HTTP_REFERER} !^http://(www.)?domain.com/.*$ [NC]
@@ -197,7 +195,7 @@ AddType application/octet-stream .zip
 
     # Control Cross-Domain Policies
     #Header set X-Permitted-Cross-Domain-Policies "master-only"
-	
+
     #### Set the content language header
     Header set Content-Language en
 
