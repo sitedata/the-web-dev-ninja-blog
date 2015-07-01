@@ -1,8 +1,9 @@
+[![Build Status](https://travis-ci.org/bardius/the-web-dev-ninja-blog.svg?branch=master)](https://travis-ci.org/bardius/the-web-dev-ninja-blog)
+[![SensioLabsInsight](https://insight.sensiolabs.com/projects/b36bc279-a195-4ecf-a484-0bb364393d42/mini.png)](https://insight.sensiolabs.com/projects/b36bc279-a195-4ecf-a484-0bb364393d42)
 [![Dependency Status](https://www.versioneye.com/user/projects/5593c1556238390018000065/badge.png)](https://www.versioneye.com/user/projects/5593c1556238390018000065)
 [![Dependency Status](https://www.versioneye.com/user/projects/5593c166623839001800006a/badge.png)](https://www.versioneye.com/user/projects/5593c166623839001800006a)
 [![Dependency Status](https://www.versioneye.com/user/projects/5593c15a623839001d000193/badge.png)](https://www.versioneye.com/user/projects/5593c15a623839001d000193)
 [![Built with Grunt](https://cdn.gruntjs.com/builtwith.png)](http://gruntjs.com/)
-[![License](https://poser.pugx.org/bardis/cms-symfony2/license.png)](https://packagist.org/packages/bardis/cms-symfony2)
 
 ![](http://www.bardis.info/bardisCMS.png)
 
