@@ -8,7 +8,11 @@
     RewriteRule .* - [E=ENVIRONMENT:prod]
     RewriteCond %{HTTP_HOST} ^blog-ci.the-web-dev.ninja [NC]
     RewriteRule .* - [E=ENVIRONMENT:dev]
-    RewriteCond %{HTTP_HOST} ^blog-ci.the-web-dev.dev [NC]
+    RewriteCond %{HTTP_HOST} ^the-web-dev-ninja.prod [NC]
+    RewriteRule .* - [E=ENVIRONMENT:prod]
+    RewriteCond %{HTTP_HOST} ^the-web-dev-ninja.test [NC]
+    RewriteRule .* - [E=ENVIRONMENT:test]
+    RewriteCond %{HTTP_HOST} ^the-web-dev-ninja.dev [NC]
     RewriteRule .* - [E=ENVIRONMENT:dev]
 
     #### Redirect non www to www ####
@@ -132,7 +136,7 @@ AddType application/octet-stream .zip
         Header set Cache-Control "private"
     </filesMatch>
     <filesMatch "\.(x?html?|php)$">
-        Header set Cache-Control "private, must-revalidate"
+        #Header set Cache-Control "private, must-revalidate"
     </filesMatch>
 </ifModule>
 

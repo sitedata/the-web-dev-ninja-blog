@@ -5,13 +5,18 @@
 {% block metaKeywords %}{{ page.keywords }}{% endblock %}
 {% block metaAuthor %}{{ page.metaAuthor }}{% endblock %}
 
+{% block WebAppTitle %}{{ page.pagetitle }}{% endblock %}
+
 {% block OgTitle %}{{ page.pagetitle }}{% endblock %}
 {% block OgSiteName %}{{ page.pagetitle }}{% endblock %}
 {% block metaOgDescription %}{{ page.description }}{% endblock %}
 
+{% block MetaTwitterTitle %}{{ page.pagetitle }}{% endblock %}
+{% block MetaTwitterDescription %}{{ page.description }}{% endblock %}
+
 {% block siteLogoTitle %}{{ page.pagetitle }}{% endblock %}
 {% block siteLogoKeywords %}{{ page.keywords }}{% endblock %}
-{% block siteLogoDescription %}{{ page.title }} {{ page.description }}{% endblock %}
+{% block siteLogoDescription %}{{ page.title }}{% endblock %}
 
 {% block body_start %}
     {#

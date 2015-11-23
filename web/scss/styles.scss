@@ -3,15 +3,8 @@
 ----------------------------------------- */
 
 header, nav, article, footer, address,
-section, aside, hgroup, figure{
+section, aside, hgroup, figure {
     display: block;
-}
-
-body, div, dl, dt, dd, ul, ol, li, pre,
-form, fieldset, p, blockquote, th, td {
-}
-
-h1, h2, h3, h4, h5, h6{
 }
 
 iframe {
@@ -19,25 +12,25 @@ iframe {
     border: none!important;
 }
 
-a{
+a {
+
+    &:hover, &:focus {
+    }
 }
 
-a:hover, a:focus{
-}
-
-.inv{
+.inv {
     font-size: 1px;
     overflow: hidden;
     text-indent: -100%;
     display: inline-block;
 }
 
-.hidden{
+.hidden {
     display: none!important;
     visibility: hidden!important;
 }
 
-img{
+img {
     border: none;
 }
 
@@ -54,12 +47,12 @@ table {
     border-collapse: collapse!important;
 }
 
-td{
+td {
     text-align: center;
     padding: 5px;
 }
 
-.clearBoth{
+.clearBoth {
     clear: both;
 }
 
@@ -67,33 +60,48 @@ td{
     float: left;
 }
 
-.hidden{
+.hidden {
     display: none;
+}
+
+.fullwidth-row {
+    max-width: 100%;
+    width: 100%;
+}
+
+.fullwidth-row::after {
+    clear: both;
+}
+
+.fullwidth-row::before,
+.fullwidth-row::after {
+    content: " ";
+    display: table;
 }
 
 /*-------------------------------------------
     Website Body / Backgrounds
   -----------------------------------------*/
 
-body{
+body {
     min-height: 100%;
     width: 100%;
 }
 
-.superWrapper{
+.superWrapper {
     width: 100%;
-    min-height: 100%;
     min-width: 320px;
 }
 
-.wrapper{
+.wrapper {
     width: 100%;
     overflow: hidden;
     position: relative;
 }
 
-.pageContents{
+.pageContents {
     min-height: 300px;
+    padding-top: 30px;
 }
 
 
@@ -101,35 +109,62 @@ body{
     Website Logo / Header
   -----------------------------------------*/
 
-header{
+header {
     overflow: visible;
     position: relative;
-    background-color: #CCC;
+    background-color: $primary-red;
 
-    #logo{
-        position: relative;
-        z-index: 98;
+    .top-bar {
 
-        .logo{
+        .title-area {
+            height: rem-calc(120);
+        }
+
+        .logo {
             float: left;
             display: block;
             margin: 0;
-        }
+            position: relative;
+            z-index: 98;
+            line-height: 1!important;
 
-        a{
-            display: block;
-            width: 100%;
-            -webkit-animation-duration: 1s!important;
-            animation-duration: 1s!important;
-
-            &:hover{
-                -webkit-animation-name: pulse;
-                animation-name: pulse;
-            }
-
-            img{
+            a {
                 display: block;
+                float: left;
+                height: rem-calc(120);
+                width: auto!important;
                 max-width: 100%;
+                overflow: hidden;
+                padding: 0!important;
+                transition: all 0.3s linear 0s;
+                //animation-duration: 1s!important;
+
+                &:hover {
+                    //animation-name: pulse;
+                }
+
+                img {
+                    display: block;
+                    width: rem-calc(100);
+                    max-width: 100%;
+                    transition: all 0.3s linear 0s;
+                    float: left;
+                    padding: rem-calc(10) 0;
+                }
+
+                span{
+                    line-height: 1;
+                    padding: rem-calc(18) 0;
+                    display: block;
+                    float: left;
+                    font-size: rem-calc(42);
+                    color: $black-color;
+                    transition: all 0.3s linear 0s;
+
+                    strong{
+                        font-weight: normal;
+                    }
+                }
             }
         }
     }
@@ -139,18 +174,80 @@ header{
     Navigation Menu Styles
   -----------------------------------------*/
 
-.top-bar{
-    margin:10px 0;
+.top-bar {
+    transition: all 0.3s linear 0s;
+
+    .name {
+        transition: all 0.3s linear 0s;
+    }
+
+    .title-area {
+        overflow: hidden;
+        transition: all 0.3s linear 0s;
+    }
+}
+
+.fixed {
+
+    .top-bar {
+        height: rem-calc(50);
+
+        .title-area {
+            height: rem-calc(50);
+        }
+    }
+
+    .name {
+        height: rem-calc(50);
+
+        .logo {
+
+            a {
+                height: rem-calc(70);
+
+                span {
+                    font-size: rem-calc(36);
+                    line-height: rem-calc(50);
+                    padding: 0;
+
+                    br {
+                        display: none;
+                    }
+                }
+
+                img {
+                    width: rem-calc(70);
+                    padding: rem-calc(4) 0;
+                }
+            }
+        }
+    }
+}
+
+.contain-to-grid {
+
+    .top-bar {
+        max-width: $row-width;
+        margin: 0 auto;
+    }
+}
+
+.top-bar.fixed.expanded {
+
+
+    .title-area {
+        height: rem-calc(50);
+    }
 }
 
 /*-------------------------------------------
     Orbit Slideshow
   -----------------------------------------*/
 
-.bannerSlide{
+.bannerSlide {
     z-index: 1;
 
-    &.active{
+    &.active {
         z-index: 2;
     }
 }
@@ -159,10 +256,10 @@ header{
     Homepage Page styles
   -----------------------------------------*/
 
-.homepageItem{
+.homepageItem {
     margin: 10px 0;
 
-    img{
+    img {
         width: 100%;
     }
 }
@@ -182,10 +279,10 @@ header{
 .paginationHolder {
     margin-top: rem-calc(30);
 
-    ul{
+    ul {
         text-align: center;
 
-        li{
+        li {
             float: none;
             display: inline-block;
             height: auto;
@@ -197,7 +294,7 @@ header{
                 letter-spacing: 1px;
                 line-height: 1.4;
                 font-family: $alt-font-family;
-                background: none #ccc;
+                background: none $primary-red;
 
                 &:hover, &:focus {
                     color: $white-color;
@@ -207,7 +304,7 @@ header{
 
             &.current{
 
-                a{
+                a {
                     color: $white-color;
                     background: none $dark-gray-color;
                     font-weight: normal;
@@ -415,13 +512,13 @@ header{
    Sitemap page
 ----------------------------------------- */
 
-.sitemapList ul{
+.sitemapList ul {
 }
 
-.sitemapList li{
+.sitemapList li {
 }
 
-.sitemapList a, .sitemapList .separator{
+.sitemapList a, .sitemapList .separator {
 }
 
 .sitemapList ul ul li a{
@@ -441,18 +538,18 @@ header{
    Footer Styles
 ----------------------------------------- */
 
-footer{
-    background: #CCC;
+footer {
+    background: $primary-gray;
 
-    &.row{
+    &.fullwidth-row {
         margin-top: rem-calc(30);
     }
 
-    .smo-menu-item{
+    .smo-menu-item {
         display: block;
         width: 24px;
         height: 24px;
-        background: #000;
+        background: $black-color;
     }
 }
 

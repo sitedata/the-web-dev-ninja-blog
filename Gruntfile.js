@@ -214,9 +214,9 @@ module.exports = function (grunt) {
         csso: {
             release: {
                 files: {
-                    '<%= config.css.path %>/styles.css': '<%= config.css.path %>/styles.css',
-                    '<%= config.css.path %>/styles_bundle_1.css': '<%= config.css.path %>/styles_bundle_1.css',
-                    '<%= config.css.path %>/styles_bundle_2.css': '<%= config.css.path %>/styles_bundle_2.css'
+                    '<%= config.css.path %>/styles.css': '<%= config.css.path %>/styles.css'
+                    //'<%= config.css.path %>/styles_bundle_1.css': '<%= config.css.path %>/styles_bundle_1.css',
+                    //'<%= config.css.path %>/styles_bundle_2.css': '<%= config.css.path %>/styles_bundle_2.css'
                 }
             }
         },
@@ -425,7 +425,7 @@ module.exports = function (grunt) {
         'uglify',
         'sass:release',
         'autoprefixer:release',
-        'csssplit:release',
+        //'csssplit:release',
         'sf2-console:assetic_dump_dev'
     ]);
 
@@ -440,7 +440,7 @@ module.exports = function (grunt) {
         'uglify',
         'sass:release',
         'autoprefixer:release',
-        'csssplit:release',
+        //'csssplit:release',
         'sf2-console:assetic_dump_dev'
     ]);
 
@@ -468,7 +468,7 @@ module.exports = function (grunt) {
         'sass:production',
         'autoprefixer:release',
         'combine_mq:release',
-        'csssplit:release',
+        //'csssplit:release',
         'csso:release',
         'sf2-console:assetic_dump_dev',
         'sf2-console:assetic_dump_prod'
@@ -488,7 +488,7 @@ module.exports = function (grunt) {
         'sass:production',
         'autoprefixer:release',
         'combine_mq:release',
-        'csssplit:release',
+        //'csssplit:release',
         'csso:release',
         'sf2-console:assetic_dump_prod'
     ]);
@@ -504,7 +504,7 @@ module.exports = function (grunt) {
         'uglify',
         'sass:release',
         'autoprefixer:release',
-        'csssplit:release',
+        //'csssplit:release',
         'sf2-console:assetic_dump_dev'
     ]);
 
@@ -532,7 +532,7 @@ module.exports = function (grunt) {
         'sass:production',
         'autoprefixer:release',
         'combine_mq:release',
-        'csssplit:release',
+        //'csssplit:release',
         'csso:release',
         'sf2-console:assetic_dump_dev',
         'sf2-console:assetic_dump_prod'
@@ -573,7 +573,7 @@ module.exports = function (grunt) {
         'sass:release',
         'autoprefixer:release',
         'combine_mq:release',
-        'csssplit:release',
+        //'csssplit:release',
         'csso:release',
         'sf2-console:assetic_dump_dev',
         'sf2-console:assetic_dump_prod'

@@ -26,25 +26,40 @@ $rem-base: 16px;
 // $include-print-styles: true;
 // $include-html-global-classes: $include-html-classes;
 
+//
+// CUSTOM FONTS
+//
+@font-face {
+  font-family: 'NinjutsuBB';
+  src:  url('/fonts/NinjutsuBB.eot?#iefix') format('embedded-opentype'),
+        url('/fonts/NinjutsuBB.woff') format('woff'),
+        url('/fonts/NinjutsuBB.ttf')  format('truetype'),
+        url('/fonts/NinjutsuBB.svg#NinjutsuBB') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
 
 //
 // GLOBAL PALLETE
 //
 
 // We use these to control various global styles
-$body-bg: #eee;
+$body-bg: #ffffff;
 $body-font-color: #000;
 $body-font-family: "Helvetica Neue", "Helvetica", Helvetica, Arial, sans-serif;
-$alt-font-family: Verdana, Tahoma, Arial, sans-serif;
+$alt-font-family: "NinjutsuBB", Verdana, Tahoma, Arial, sans-serif;
 $body-font-weight: normal;
 $body-font-style: normal;
 
 // We use these as default colors throughout
-$primary-color: #008CBA;
-$secondary-color: #e7e7e7;
+$primary-color: #ef4748;
+$secondary-color: #ef4748;
+$primary-red: #ef4748;
+$primary-gray: #959595;
 $alert-color: #f04124;
 $success-color: #43AC6A;
 $white-color: #ffffff;
+$black-color: #000000;
 $dark-gray-color: #515151;
 
 // We use these to make sure border radius matches unless we want it different.
@@ -69,7 +84,8 @@ $dark-gray-color: #515151;
 // $default-float: left;
 
 // We use these to control header font styles
-$header-font-family: join("Verdana", $body-font-family) !default;
+//$header-font-family: join("Verdana", $body-font-family) !default;
+$header-font-family: $alt-font-family !default;
 $header-font-weight: 300 !default;
 $header-font-style: normal !default;
 $header-font-color: #222 !default;
@@ -1023,12 +1039,12 @@ $medium-down: "#{$screen} and (min-width:#{lower-bound($small-range)}) and (max-
 // $include-html-top-bar-classes: $include-html-classes;
 
 // Background color for the top bar
-// $topbar-bg-color: #333;
+$topbar-bg-color: $primary-red;
 // $topbar-bg: $topbar-bg-color;
 
 // Height and margin
-// $topbar-height: 45px;
-// $topbar-margin-bottom: 0;
+$topbar-height: rem-calc(120);
+// $topbar-margin-bottom: rem-calc(10);
 
 // Control Input height for top bar
 
@@ -1037,9 +1053,9 @@ $medium-down: "#{$screen} and (min-width:#{lower-bound($small-range)}) and (max-
 // $topbar-title-font-size: rem-calc(17);
 
 // Style the top bar dropdown elements
-// $topbar-dropdown-bg: #333;
+$topbar-dropdown-bg: $topbar-bg-color;
 // $topbar-dropdown-link-color: #fff;
-// $topbar-dropdown-link-bg: #333;
+$topbar-dropdown-link-bg: $topbar-bg-color;
 // $topbar-dropdown-toggle-size: 5px;
 // $topbar-dropdown-toggle-color: #fff;
 // $topbar-dropdown-toggle-alpha: 0.4;
@@ -1074,9 +1090,10 @@ $topbar-link-font-size: rem-calc(16);
 // $topbar-menu-icon-color-toggled: #888;
 
 // Transitions and breakpoint styles
-// $topbar-transition-speed: 300ms;
+$topbar-transition-speed: 300ms;
 // Using rem-calc for the below breakpoint causes issues with top bar
 // $topbar-breakpoint: #{upper-bound($medium-range)}; // Change to 9999px for always mobile layout
+$topbar-breakpoint: 99999px;
 // $topbar-media-query: "only screen and (min-width: #{upper-bound($medium-range)})";
 
 // Divider Styles
