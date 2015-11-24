@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # This script will use rsync to
 # copy the files for the Jenkins job workspace to the provided target directory,
 # excluding the files listed in exclude.txt (regular expression list)
@@ -16,6 +17,14 @@ dirRoot=$1
 echo -e "\n\n\e[0;34mUnix path for Jenkins Workspace working dir is:\e[0m" $dirRoot
 echo -e "\n\e[0;34mUnix path for Deployable files dir is:\e[0m" $dirRoot/$2
 
+echo -e "\n\n\e[0;34m********** Setting up the correct composer.json file **********\e[0m"
+echo sudo -t -H -u $4 bash -c "sudo mv -v $dirRoot/$2composer.json.jenkins $dirRoot/$2composer.json"
+sudo -t -H -u $4 bash -c "sudo mv -v $dirRoot/$2composer.json.jenkins $dirRoot/$2composer.json"
+
+echo -e "\n\n\e[0;34m********** Updating Composer Dependensies **********\e[0m"
+echo sudo -t -H -u $4 bash -c "sudo php $dirRoot/$2composer.phar install -o"
+sudo -t -H -u $4 bash -c "sudo php $dirRoot/$2composer.phar install -o"
+
 echo -e "\n\n\e[0;34m********** Start Synchronising files with Rsync **********\e[0m"
 echo sudo -t -H -u $4 bash -c "sudo /usr/bin/rsync -arivzt --delete --no-p --no-o --no-g --exclude-from=$dirRoot/build/exclude.txt --stats $dirRoot/$2 $3"
 sudo -t -H -u $4 bash -c "sudo /usr/bin/rsync -arivzt --delete --no-p --no-o --no-g --exclude-from=$dirRoot/build/exclude.txt --stats $dirRoot/$2 $3"
@@ -31,18 +40,6 @@ sudo -t -H -u $4 bash -c "sudo find $3 -type d -print0 | sudo xargs -0 chmod 075
 echo -e "\n\n\e[0;34m********** Set permissions to files **********\e[0m"
 echo sudo -t -H -u $4 bash -c "sudo find $3 -type f -print0 | sudo xargs -0 chmod 0644"
 sudo -t -H -u $4 bash -c "sudo find $3 -type f -print0 | sudo xargs -0 chmod 0644"
-
-echo -e "\n\n\e[0;34m********** Set permissions to uploads folder **********\e[0m"
-echo sudo -t -H -u $4 bash -c "sudo chmod 0777 -R $3/web/uploads"
-sudo -t -H -u $4 bash -c "sudo chmod 0777 -R $3/web/uploads"
-
-echo -e "\n\n\e[0;34m********** Set permissions to cache folder **********\e[0m"
-echo sudo -t -H -u $4 bash -c "sudo chmod 0777 -R $3/app/cache"
-sudo -t -H -u $4 bash -c "sudo chmod 0777 -R $3/app/cache"
-
-echo -e "\n\n\e[0;34m********** Set permissions to logs folder **********\e[0m"
-echo sudo -t -H -u $4 bash -c "sudo chmod 0777 -R $3/app/logs"
-sudo -t -H -u $4 bash -c "sudo chmod 0777 -R $3/app/logs"
 
 echo -e "\n\n\e[0;34m********** Clear Cache **********\e[0m"
 echo sudo -t -H -u $4 bash -c "sudo php $3/app/console cache:clear --no-debug"

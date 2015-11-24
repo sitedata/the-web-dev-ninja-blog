@@ -15,17 +15,20 @@ Thumbs.db
 
 *.sublime-*
 nbproject/
+.idea/
 node_modules/
 
 /conf
 /build
 /database_dump
+/legacy_bash_scripts
 
 /.bowerrc
 /phpunit.xml.dist
 /.editorconfig
 /.gitattributes
 /.gitignore
+/.gitconfig
 /Gruntfile.js
 /.jshintrc
 /.jscs.json
@@ -42,6 +45,8 @@ node_modules/
 /app/logs/*
 /app/sessions/*
 /app/cache/*
+
+/grunt
 
 /app/config/parameters.yml
 /app/config/parameters.yml.dist

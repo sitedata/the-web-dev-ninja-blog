@@ -27,11 +27,11 @@ Thumbs.db
 nbproject/
 node_modules/
 npm-debug.log
-
+*.iml
+.idea/
 
 # Symfony2 #
 #############
-/app/bootstrap.php.cache
 /app/cache/*
 /app/logs/*
 /app/sessions/*
