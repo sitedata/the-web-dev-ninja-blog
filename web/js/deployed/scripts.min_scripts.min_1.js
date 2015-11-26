@@ -10123,33 +10123,7 @@ IASNoneLeftExtension.prototype.defaults = {
     };
     CMS.foundationConfig = {
         init: function() {
-            $(document).foundation({
-                reveal: {
-                    animation: "fadeAndPop",
-                    animation_speed: 350,
-                    close_on_background_click: true,
-                    dismiss_modal_class: "close-reveal-modal",
-                    bg_class: "reveal-modal-bg"
-                },
-                orbit: {
-                    animation: "fade",
-                    timer_speed: 8e3,
-                    pause_on_hover: true,
-                    resume_on_mouseout: false,
-                    animation_speed: 700,
-                    stack_on_small: false,
-                    navigation_arrows: true,
-                    slide_number: false,
-                    bullets: true,
-                    timer: false,
-                    variable_height: false
-                },
-                dropdown: {},
-                offcanvas: {
-                    open_method: "move",
-                    close_on_click: true
-                }
-            });
+            $(document).foundation();
         }
     };
     CMS.UI = {

@@ -81,25 +81,24 @@
         <div class="superWrapper">
             <div class="wrapper">
                 {% block body_start %}{% endblock %}
-                <header class="header fullwidth-row">
-                    <div class="sticky contain-to-grid">
-                        <nav class="top-bar" data-topbar role="navigation" data-options="is_hover: false">
-                            <ul class="title-area">
-                                <li class="name">
-                                    <h1 class="logo">
-                                        <a href="{{ url('PageBundle_index', { 'alias': 'index' }) }}" title="{% block siteLogoTitle %}Page Title{% endblock %}">
-                                            <img src="{% block sitelogoImage %}{{ app.request.uriForPath('/images/site_assets/sitelogo.png') }}{% endblock %}" alt="{% block siteLogoKeywords %}Site Keywords{% endblock %}" />
-                                            <span>The Web Dev <br /><strong>Ninja</strong></span>
-                                        </a>
-                                    </h1>
-                                </li>
-                                <li class="toggle-topbar menu-icon">
-                                    <a href="#">
-                                        <span>Menu</span>
-                                    </a>
-                                </li>
-                            </ul>
-                            <section class="top-bar-section">
+                <header class="header fullwidth-row" data-sticky-container>
+                    <div class="contain-to-grid sticky" data-sticky>
+                        <div class="title-bar" data-responsive-toggle="header-nav" data-hide-for="-1">
+                            <h1 class="logo">
+                                <a href="{{ url('PageBundle_index', { 'alias': 'index' }) }}" title="{% block siteLogoTitle %}Page Title{% endblock %}">
+                                    <img src="{% block sitelogoImage %}{{ app.request.uriForPath('/images/site_assets/sitelogo.png') }}{% endblock %}" alt="{% block siteLogoKeywords %}Site Keywords{% endblock %}" />
+                                    <span>The Web Dev <br /><strong>Ninja</strong></span>
+                                </a>
+                            </h1>
+
+                            <button class="menu-icon" type="button" data-toggle></button>
+                            <div class="title-bar-title">Menu</div>
+                        </div>
+
+                        <nav class="top-bar" role="navigation" id="header-nav">
+                            <div class="top-bar-left">
+                            </div>
+                            <section class="top-bar-right">
                                 {{ knp_menu_render('main', {'template': 'MenuBundle:Menu:knp_menu.html.twig', 'depth': null, 'currentAsLink': true, 'currentClass': 'active', 'ancestorClass': 'active active_ancestor', 'compressed': false, 'allow_safe_labels': false }) }}
                             </section>
                         </nav>

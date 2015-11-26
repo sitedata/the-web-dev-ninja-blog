@@ -39,7 +39,7 @@
         init: function () {
 
             // Start the foundation Plugins Configuration
-            $(document).foundation({
+            $(document).foundation(/*{
                 reveal: {
                     animation: 'fadeAndPop',
                     animation_speed: 350,
@@ -66,7 +66,7 @@
                     open_method: 'move', // Sets method in which offcanvas opens, can also be 'overlap'
                     close_on_click: true
                 }
-            });
+            }*/);
         }
     };
 
