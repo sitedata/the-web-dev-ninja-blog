@@ -227,7 +227,7 @@ header {
 .contain-to-grid {
 
     .top-bar {
-        max-width: $row-width;
+        max-width: $grid-row-width;
         margin: 0 auto;
     }
 }
@@ -554,32 +554,32 @@ footer {
 }
 
 /* ---------------------------------------------------
-   Media Queries for mobile / tablets responsivenes
+   Media Queries for mobile / tablets responsiveness
 ----------------------------------------------------- */
 
-@media #{$small-only} {
+@include breakpoint(small only) {
 
     html {
         font-size: 11px!important;
     }
 }
 
-@media #{$medium-down} {
+@include breakpoint(medium down) {
 
     html {
         font-size: 13px!important;
     }
 }
 
-@media #{$medium-only} {
+@include breakpoint(medium only) {
 
 }
 
-@media #{$medium-up} {
+@include breakpoint(medium) {
 
 }
 
-@media #{$large-up} {
+@include breakpoint(large) {
 
 }
 

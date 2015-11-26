@@ -19,7 +19,7 @@
     "tag": "v2.2.1",
     "commit": "7380f74fca64180a4c5da18d01065a8aef0494b7"
   },
-  "_source": "git://github.com/webcreate/infinite-ajax-scroll.git",
+  "_source": "https://github.com/webcreate/infinite-ajax-scroll.git",
   "_target": "~2.2.1",
   "_originalSource": "jquery-ias"
 }

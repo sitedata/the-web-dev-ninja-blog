@@ -34,13 +34,13 @@ module.exports = function (grunt) {
                     modernizrReleaseFile: 'modernizr.min.js',
                     // <%=config.js.scriptFileList%>
                     scriptFileList: [
-                        'web/bower_components/jquery/jquery.js',
-                        // Include only used Foundation 5 scripts if needed instead of the minified full framework ones
-                        //'web/bower_components/foundation/js/foundation.js',
-                        //'web/bower_components/foundation/js/foundation/*.js',
+                        'web/bower_components/jquery/dist/jquery.js',
+                        // Include only used Foundation 6 scripts if needed instead of the minified full framework ones
+                        //'web/bower_components/foundation-sites/js/foundation.js',
+                        //'web/bower_components/foundation-sites/js/foundation/*.js',
 
-                        // Include all Foundation 5 scripts
-                        'web/bower_components/foundation/js/foundation.js',
+                        // Include all Foundation 6 scripts
+                        'web/bower_components/foundation-sites/dist/foundation.js',
                         'web/js/helpers/environment.js',
                         'web/js/helpers/supports.js',
                         'web/js/helpers/console.js',
@@ -73,7 +73,7 @@ module.exports = function (grunt) {
                 },
                 f5scss: {
                     // <%= config.f5scss.path %>
-                    path: 'web/bower_components/foundation/scss'
+                    path: 'web/bower_components/foundation-sites/scss'
                 },
                 jstests: {
                     // <%= config.jstests.path %>

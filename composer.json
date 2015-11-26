@@ -1,6 +1,5 @@
 {
     "name": "bardis/the-web-dev-ninja-blog",
-    "type": "symfony-distribution",
     "description": "Blog based on Symfony2 BardisCMS",
     "keywords": ["symfony2", "zurb foundation", "cms", "responsive", "doctrine", "content management", "guzzle", "rest"],
     "license": "MIT",
