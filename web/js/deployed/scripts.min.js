@@ -10307,7 +10307,11 @@ IASNoneLeftExtension.prototype.defaults = {
     CMS.foundationConfig = {
         init: function() {
             $(document).foundation();
+            CMS.foundationOverrides.init();
         }
+    };
+    CMS.foundationOverrides = {
+        init: function() {}
     };
     CMS.UI = {
         init: function() {
@@ -10366,8 +10370,10 @@ IASNoneLeftExtension.prototype.defaults = {
     CMS.windowResize = {
         init: function() {
             $(window).smartresize(function() {
-                $(".orbit").foundation();
                 notifications.sendNotification(notifications.WINDOW_RESIZE);
+                $(".orbit-container").css("height", "auto");
+                $(".orbit-slide").css("max-height", "none");
+                $(".orbit").foundation();
             });
         }
     };

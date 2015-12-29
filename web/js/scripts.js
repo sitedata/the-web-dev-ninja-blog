@@ -67,6 +67,13 @@
                     close_on_click: true
                 }
             }*/);
+
+            CMS.foundationOverrides.init();
+        }
+    };
+
+    CMS.foundationOverrides = {
+        init: function () {
         }
     };
 
@@ -143,7 +150,6 @@
 
     CMS.mobileSpecific = {
         init: function () {
-
         }
     };
 
@@ -151,6 +157,12 @@
         init: function () {
             $(window).smartresize(function () {
                 notifications.sendNotification(notifications.WINDOW_RESIZE);
+
+                // Remove the calculated heights for the Orbit carousel to make it behave
+                // as fully responsive based on contents aspect ratio
+                $(".orbit-container").css('height', 'auto');
+                $(".orbit-slide").css('max-height', 'none');
+                $(".orbit").foundation();
             });
         }
     };

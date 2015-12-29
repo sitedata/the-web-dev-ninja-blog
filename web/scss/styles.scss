@@ -581,6 +581,17 @@ footer {
 
     .header {
 
+        .top-bar {
+
+            .top-bar-left{
+                display: none;
+            }
+
+            .top-bar-right{
+                float: none;
+            }
+        }
+
         .menu > li {
             display: inline-block;
             width: 100%;

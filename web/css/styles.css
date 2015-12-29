@@ -7166,6 +7166,12 @@ footer .smo-menu-item {
     font-size: 13px !important;
   }
 
+  .header .top-bar .top-bar-left {
+    display: none;
+  }
+  .header .top-bar .top-bar-right {
+    float: none;
+  }
   .header .menu > li {
     display: inline-block;
     width: 100%;
