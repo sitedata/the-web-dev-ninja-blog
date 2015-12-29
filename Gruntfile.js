@@ -34,7 +34,7 @@ module.exports = function (grunt) {
                     modernizrReleaseFile: 'modernizr.min.js',
                     // <%=config.js.scriptFileList%>
                     scriptFileList: [
-                        'web/bower_components/jquery/dist/jquery.js',
+                        'web/bower_components/jquery/jquery.js',
                         // Include only used Foundation 6 scripts if needed instead of the minified full framework ones
                         //'web/bower_components/foundation-sites/js/foundation.js',
                         //'web/bower_components/foundation-sites/js/foundation/*.js',

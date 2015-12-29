@@ -79,6 +79,14 @@ td {
     display: table;
 }
 
+.row.column {
+    padding: 0;
+}
+
+.sticky-container {
+    z-index: 20;
+}
+
 /*-------------------------------------------
     Website Body / Backgrounds
   -----------------------------------------*/
@@ -115,56 +123,55 @@ header {
     position: relative;
     background-color: $primary-red;
 
-    .top-bar {
+    .column.row {
+        background-color: $primary-red;
+    }
 
-        .title-area {
-            height: rem-calc(120);
-        }
+    .logo {
+        float: left;
+        display: block;
+        margin: 0;
+        position: relative;
+        z-index: 98;
+        line-height: 1 !important;
 
-        .logo {
-            float: left;
+        a {
             display: block;
-            margin: 0;
-            position: relative;
-            z-index: 98;
-            line-height: 1!important;
+            float: left;
+            height: rem-calc(120);
+            width: auto !important;
+            max-width: 100%;
+            overflow: hidden;
+            padding: 0 !important;
+            transition: all 0.3s linear 0s;
+            color: $black-color;
+            //animation-duration: 1s!important;
 
-            a {
+            &:hover {
+                color: $white-color;
+                //animation-name: pulse;
+            }
+
+            img {
+                display: block;
+                width: rem-calc(100);
+                max-width: 100%;
+                transition: all 0.3s linear 0s;
+                float: left;
+                padding: rem-calc(10) 0;
+            }
+
+            span {
+                line-height: 1;
+                padding: rem-calc(18) 0;
                 display: block;
                 float: left;
-                height: rem-calc(120);
-                width: auto!important;
-                max-width: 100%;
-                overflow: hidden;
-                padding: 0!important;
+                font-size: rem-calc(42);
+                color: $black-color;
                 transition: all 0.3s linear 0s;
-                //animation-duration: 1s!important;
 
-                &:hover {
-                    //animation-name: pulse;
-                }
-
-                img {
-                    display: block;
-                    width: rem-calc(100);
-                    max-width: 100%;
-                    transition: all 0.3s linear 0s;
-                    float: left;
-                    padding: rem-calc(10) 0;
-                }
-
-                span{
-                    line-height: 1;
-                    padding: rem-calc(18) 0;
-                    display: block;
-                    float: left;
-                    font-size: rem-calc(42);
-                    color: $black-color;
-                    transition: all 0.3s linear 0s;
-
-                    strong{
-                        font-weight: normal;
-                    }
+                strong {
+                    font-weight: normal;
                 }
             }
         }
@@ -225,16 +232,17 @@ header {
     }
 }
 
-.contain-to-grid {
+.row.column {
 
-    .top-bar {
+    .top-bar,
+    .title-bar {
         max-width: $grid-row-width;
         margin: 0 auto;
+        background: transparent;
     }
 }
 
 .top-bar.fixed.expanded {
-
 
     .title-area {
         height: rem-calc(50);
@@ -570,6 +578,15 @@ footer {
     html {
         font-size: 13px!important;
     }
+
+    .header {
+
+        .menu > li {
+            display: inline-block;
+            width: 100%;
+            background: transparent;
+        }
+    }
 }
 
 @include breakpoint(medium only) {
@@ -581,46 +598,6 @@ footer {
 }
 
 @include breakpoint(large) {
-
-}
-
-@media only screen and (device-width: 320px) and (orientation:portrait){
-
-}
-
-@media only screen and (device-width: 320px) and (orientation:landscape){
-
-}
-
-@media only screen and (max-width: 380px){
-
-}
-
-@media only screen and (max-width: 498px){
-
-}
-
-@media only screen and (max-width: 766px) and (min-width: 499px){
-
-}
-
-@media only screen and (max-width: 767px){
-
-}
-
-@media only screen and (device-width:768px) and (orientation:portrait){
-
-}
-
-@media only screen and (device-width:768px) and (orientation:landscape){
-
-}
-
-@media only screen and (max-width: 959px) and (min-width: 768px){
-
-}
-
-@media only screen and (min-width: 960px) {
 
 }
 

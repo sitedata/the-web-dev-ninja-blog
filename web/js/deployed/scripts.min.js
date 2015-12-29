@@ -5379,7 +5379,7 @@
 
 !function($) {
     "use strict";
-    var FOUNDATION_VERSION = "6.0.4";
+    var FOUNDATION_VERSION = "6.1.1";
     var Foundation = {
         version: FOUNDATION_VERSION,
         _plugins: {},
@@ -5393,38 +5393,55 @@
             var attrName = hyphenate(className);
             this._plugins[attrName] = this[className] = plugin;
         },
-        registerPlugin: function(plugin) {
-            var pluginName = functionName(plugin.constructor).toLowerCase();
+        registerPlugin: function(plugin, name) {
+            var pluginName = name ? hyphenate(name) : functionName(plugin.constructor).toLowerCase();
             plugin.uuid = this.GetYoDigits(6, pluginName);
-            plugin.$element.attr("data-" + pluginName, plugin.uuid).trigger("init.zf." + pluginName);
-            this._activePlugins[plugin.uuid] = plugin;
+            if (!plugin.$element.attr("data-" + pluginName)) {
+                plugin.$element.attr("data-" + pluginName, plugin.uuid);
+            }
+            if (!plugin.$element.data("zfPlugin")) {
+                plugin.$element.data("zfPlugin", plugin);
+            }
+            plugin.$element.trigger("init.zf." + pluginName);
+            this._uuids.push(plugin.uuid);
             return;
         },
         unregisterPlugin: function(plugin) {
-            var pluginName = functionName(plugin.constructor).toLowerCase();
-            delete this._activePlugins[plugin.uuid];
-            plugin.$element.removeAttr("data-" + pluginName).trigger("destroyed.zf." + pluginName);
+            var pluginName = hyphenate(functionName(plugin.$element.data("zfPlugin").constructor));
+            this._uuids.splice(this._uuids.indexOf(plugin.uuid), 1);
+            plugin.$element.removeAttr("data-" + pluginName).removeData("zfPlugin").trigger("destroyed.zf." + pluginName);
+            for (var prop in plugin) {
+                plugin[prop] = null;
+            }
             return;
         },
-        _reflow: function(plugins) {
-            var actvPlugins = Object.keys(this._activePlugins);
-            var _this = this;
-            if (!plugins) {
-                actvPlugins.forEach(function(p) {
-                    _this._activePlugins[p]._init();
-                });
-            } else if (typeof plugins === "string") {
-                var namespace = plugins.split("-")[1];
-                if (namespace) {
-                    this._activePlugins[plugins]._init();
-                } else {
-                    namespace = new RegExp(plugins, "i");
-                    actvPlugins.filter(function(p) {
-                        return namespace.test(p);
-                    }).forEach(function(p) {
-                        _this._activePlugins[p]._init();
+        reInit: function(plugins) {
+            var isJQ = plugins instanceof $;
+            try {
+                if (isJQ) {
+                    plugins.each(function() {
+                        $(this).data("zfPlugin")._init();
                     });
+                } else {
+                    var type = typeof plugins, _this = this, fns = {
+                        object: function(plgs) {
+                            plgs.forEach(function(p) {
+                                $("[data-" + p + "]").foundation("_init");
+                            });
+                        },
+                        string: function() {
+                            $("[data-" + plugins + "]").foundation("_init");
+                        },
+                        undefined: function() {
+                            this["object"](Object.keys(_this._plugins));
+                        }
+                    };
+                    fns[type](plugins);
                 }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                return plugins;
             }
         },
         GetYoDigits: function(length, namespace) {
@@ -5440,10 +5457,10 @@
             var _this = this;
             $.each(plugins, function(i, name) {
                 var plugin = _this._plugins[name];
-                var $elem = $(elem).find("[data-" + name + "]").addBack("*");
+                var $elem = $(elem).find("[data-" + name + "]").addBack("[data-" + name + "]");
                 $elem.each(function() {
                     var $el = $(this), opts = {};
-                    if ($el.attr("zf-plugin")) {
+                    if ($el.data("zfPlugin")) {
                         console.warn("Tried to initialize " + name + " on an element that already has a Foundation plugin.");
                         return;
                     }
@@ -5455,7 +5472,13 @@
                             if (opt[0]) opts[opt[0]] = parseValue(opt[1]);
                         });
                     }
-                    $el.data("zf-plugin", new plugin($(this), opts));
+                    try {
+                        $el.data("zfPlugin", new plugin($(this), opts));
+                    } catch (er) {
+                        console.error(er);
+                    } finally {
+                        return;
+                    }
                 });
             });
         },
@@ -5764,7 +5787,7 @@
     Foundation.Keyboard.parseKey = parseKey;
     var commands = {};
     var handleKey = function(event, component, functions) {
-        var commandList = commands[Foundation.getFnName(component)], keyCode = parseKey(event), cmds, command, fn;
+        var commandList = commands[component], keyCode = parseKey(event), cmds, command, fn;
         if (!commandList) return console.warn("Component not defined!");
         if (typeof commandList.ltr === "undefined") {
             cmds = commandList;
@@ -5774,13 +5797,13 @@
         command = cmds[keyCode];
         fn = functions[command];
         if (fn && typeof fn === "function") {
-            fn.apply(component);
+            fn.apply();
             if (functions.handled || typeof functions.handled === "function") {
-                functions.handled.apply(component);
+                functions.handled.apply();
             }
         } else {
             if (functions.unhandled || typeof functions.unhandled === "function") {
-                functions.unhandled.apply(component);
+                functions.unhandled.apply();
             }
         }
     };
@@ -6076,7 +6099,7 @@
     $.spotSwipe = {
         version: "1.0.0",
         enabled: "ontouchstart" in document.documentElement,
-        preventDefault: true,
+        preventDefault: false,
         moveThreshold: 75,
         timeThreshold: 200
     };
@@ -6099,10 +6122,9 @@
             elapsedTime = new Date().getTime() - startTime;
             if (Math.abs(dx) >= $.spotSwipe.moveThreshold && elapsedTime <= $.spotSwipe.timeThreshold) {
                 dir = dx > 0 ? "left" : "right";
-            } else if (Math.abs(dy) >= $.spotSwipe.moveThreshold && elapsedTime <= $.spotSwipe.timeThreshold) {
-                dir = dy > 0 ? "down" : "up";
             }
             if (dir) {
+                e.preventDefault();
                 onTouchEnd.call(this);
                 $(this).trigger("swipe", dir).trigger("swipe" + dir);
             }
@@ -6304,12 +6326,8 @@
     function Abide(element, options) {
         this.$element = element;
         this.options = $.extend({}, Abide.defaults, this.$element.data(), options);
-        this.$window = $(window);
-        this.name = "Abide";
-        this.attr = "data-abide";
         this._init();
-        this._events();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Abide");
     }
     Abide.defaults = {
         validateOn: "fieldChange",
@@ -6317,6 +6335,7 @@
         inputErrorClass: "is-invalid-input",
         formErrorSelector: ".form-error",
         formErrorClass: "is-visible",
+        liveValidate: false,
         patterns: {
             alpha: /^[a-zA-Z]+$/,
             alpha_numeric: /^[a-zA-Z0-9]+$/,
@@ -6337,186 +6356,169 @@
         },
         validators: {
             equalTo: function(el, required, parent) {
-                var from = document.getElementById(el.getAttribute(this.add_namespace("data-equalto"))).value, to = el.value, valid = from === to;
-                return valid;
+                return $("#" + el.attr("data-equalto")).val() === el.val();
             }
         }
     };
-    Abide.prototype._init = function() {};
+    Abide.prototype._init = function() {
+        this.$inputs = this.$element.find("input, textarea, select").not("[data-abide-ignore]");
+        this._events();
+    };
     Abide.prototype._events = function() {
-        var self = this;
-        this.$element.off(".abide").on("reset.fndtn.abide", function(e) {
-            self.resetForm($(this));
-        }).on("submit.fndtn.abide", function(e) {
-            e.preventDefault();
-            self.validateForm(self.$element);
-        }).find("input, textarea, select").off(".abide").on("blur.fndtn.abide change.fndtn.abide", function(e) {
-            if (self.options.validateOn === "fieldChange") {
-                self.validateInput($(e.target), self.$element);
-            }
-        }).on("keydown.fndtn.abide", function(e) {});
+        var _this = this;
+        this.$element.off(".abide").on("reset.zf.abide", function(e) {
+            _this.resetForm();
+        }).on("submit.zf.abide", function(e) {
+            return _this.validateForm();
+        });
+        if (this.options.validateOn === "fieldChange") {
+            this.$inputs.off("change.zf.abide").on("change.zf.abide", function(e) {
+                _this.validateInput($(this));
+            });
+        }
+        if (this.options.liveValidate) {
+            this.$inputs.off("input.zf.abide").on("input.zf.abide", function(e) {
+                _this.validateInput($(this));
+            });
+        }
     }, Abide.prototype._reflow = function() {
-        var self = this;
+        this._init();
     };
     Abide.prototype.requiredCheck = function($el) {
+        if (!$el.attr("required")) return true;
+        var isGood = true;
         switch ($el[0].type) {
-          case "text":
-            if ($el.attr("required") && !$el.val()) {
-                return false;
-            } else {
-                return true;
-            }
-            break;
-
           case "checkbox":
-            if ($el.attr("required") && !$el.is(":checked")) {
-                return false;
-            } else {
-                return true;
-            }
+          case "radio":
+            isGood = $el[0].checked;
             break;
 
-          case "radio":
-            if ($el.attr("required") && !$el.is(":checked")) {
-                return false;
-            } else {
-                return true;
-            }
+          case "select":
+          case "select-one":
+          case "select-multiple":
+            var opt = $el.find("option:selected");
+            if (!opt.length || !opt.val()) isGood = false;
             break;
 
           default:
-            if ($el.attr("required") && (!$el.val() || !$el.val().length || $el.is(":empty"))) {
-                return false;
-            } else {
-                return true;
-            }
+            if (!$el.val() || !$el.val().length) isGood = false;
         }
+        return isGood;
+    };
+    Abide.prototype.findFormError = function($el) {
+        var $error = $el.siblings(this.options.formErrorSelector);
+        if (!$error.length) {
+            $error = $el.parent().find(this.options.formErrorSelector);
+        }
+        return $error;
     };
     Abide.prototype.findLabel = function($el) {
-        if ($el.next("label").length) {
-            return $el.next("label");
-        } else {
+        var $label = this.$element.find('label[for="' + $el[0].id + '"]');
+        if (!$label.length) {
             return $el.closest("label");
         }
+        return $label;
     };
     Abide.prototype.addErrorClasses = function($el) {
-        var self = this, $label = self.findLabel($el), $formError = $el.next(self.options.formErrorSelector) || $el.find(self.options.formErrorSelector);
-        if ($label) {
-            $label.addClass(self.options.labelErrorClass);
+        var $label = this.findLabel($el), $formError = this.findFormError($el);
+        if ($label.length) {
+            $label.addClass(this.options.labelErrorClass);
         }
-        if ($formError) {
-            $formError.addClass(self.options.formErrorClass);
+        if ($formError.length) {
+            $formError.addClass(this.options.formErrorClass);
         }
-        $el.addClass(self.options.inputErrorClass);
+        $el.addClass(this.options.inputErrorClass).attr("data-invalid", "");
     };
     Abide.prototype.removeErrorClasses = function($el) {
-        var self = this, $label = self.findLabel($el), $formError = $el.next(self.options.formErrorSelector) || $el.find(self.options.formErrorSelector);
-        if ($label && $label.hasClass(self.options.labelErrorClass)) {
-            $label.removeClass(self.options.labelErrorClass);
+        var $label = this.findLabel($el), $formError = this.findFormError($el);
+        if ($label.length) {
+            $label.removeClass(this.options.labelErrorClass);
         }
-        if ($formError && $formError.hasClass(self.options.formErrorClass)) {
-            $formError.removeClass(self.options.formErrorClass);
+        if ($formError.length) {
+            $formError.removeClass(this.options.formErrorClass);
         }
-        if ($el.hasClass(self.options.inputErrorClass)) {
-            $el.removeClass(self.options.inputErrorClass);
-        }
+        $el.removeClass(this.options.inputErrorClass).removeAttr("data-invalid");
     };
-    Abide.prototype.validateInput = function($el, $form) {
-        var self = this, textInput = $form.find('input[type="text"]'), checkInput = $form.find('input[type="checkbox"]'), label, radioGroupName;
-        if ($el[0].type === "text") {
-            if (!self.requiredCheck($el) || !self.validateText($el)) {
-                self.addErrorClasses($el);
-                $el.trigger("invalid.fndtn.abide", $el[0]);
-            } else {
-                self.removeErrorClasses($el);
-                $el.trigger("valid.fndtn.abide", $el[0]);
-            }
-        } else if ($el[0].type === "radio") {
-            radioGroupName = $el.attr("name");
-            label = $el.siblings("label");
-            if (self.validateRadio(radioGroupName)) {
-                $(label).each(function() {
-                    if ($(this).hasClass(self.options.labelErrorClass)) {
-                        $(this).removeClass(self.options.labelErrorClass);
-                    }
-                });
-                $el.trigger("valid.fndtn.abide", $el[0]);
-            } else {
-                $(label).each(function() {
-                    $(this).addClass(self.options.labelErrorClass);
-                });
-                $el.trigger("invalid.fndtn.abide", $el[0]);
-            }
-        } else if ($el[0].type === "checkbox") {
-            if (!self.requiredCheck($el)) {
-                self.addErrorClasses($el);
-                $el.trigger("invalid.fndtn.abide", $el[0]);
-            } else {
-                self.removeErrorClasses($el);
-                $el.trigger("valid.fndtn.abide", $el[0]);
-            }
-        } else {
-            if (!self.requiredCheck($el) || !self.validateText($el)) {
-                self.addErrorClasses($el);
-                $el.trigger("invalid.fndtn.abide", $el[0]);
-            } else {
-                self.removeErrorClasses($el);
-                $el.trigger("valid.fndtn.abide", $el[0]);
-            }
+    Abide.prototype.validateInput = function($el) {
+        var clearRequire = this.requiredCheck($el), validated = false, customValidator = true, validator = $el.attr("data-validator"), equalTo = true;
+        switch ($el[0].type) {
+          case "radio":
+            validated = this.validateRadio($el.attr("name"));
+            break;
+
+          case "checkbox":
+            validated = clearRequire;
+            break;
+
+          case "select":
+          case "select-one":
+          case "select-multiple":
+            validated = clearRequire;
+            break;
+
+          default:
+            validated = this.validateText($el);
         }
+        if (validator) {
+            customValidator = this.matchValidation($el, validator, $el.attr("required"));
+        }
+        if ($el.attr("data-equalto")) {
+            equalTo = this.options.validators.equalTo($el);
+        }
+        var goodToGo = [ clearRequire, validated, customValidator, equalTo ].indexOf(false) === -1, message = (goodToGo ? "valid" : "invalid") + ".zf.abide";
+        this[goodToGo ? "removeErrorClasses" : "addErrorClasses"]($el);
+        $el.trigger(message, $el[0]);
+        return goodToGo;
     };
-    Abide.prototype.validateForm = function($form) {
-        var self = this, inputs = $form.find("input"), inputCount = $form.find("input").length, counter = 0;
-        while (counter < inputCount) {
-            self.validateInput($(inputs[counter]), $form);
-            counter++;
-        }
-        if ($form.find(".form-error.is-visible").length || $form.find(".is-invalid-label").length) {
-            $form.find("[data-abide-error]").css("display", "block");
-        } else {
-            $form.find("[data-abide-error]").css("display", "none");
-        }
-    };
-    Abide.prototype.validateText = function($el) {
-        var self = this, valid = false, patternLib = this.options.patterns, inputText = $($el).val(), pattern = $($el).attr("pattern");
-        if (inputText.length === 0) {
-            return true;
-        } else {
-            if (inputText.match(patternLib[pattern])) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    };
-    Abide.prototype.validateRadio = function(group) {
-        var self = this, labels = $(':radio[name="' + group + '"]').siblings("label"), counter = 0;
-        $(':radio[name="' + group + '"]').each(function() {
-            if (!self.requiredCheck($(this))) {
-                counter++;
-            }
-            if ($(this).is(":checked")) {
-                counter = 0;
-            }
+    Abide.prototype.validateForm = function() {
+        var acc = [], _this = this;
+        this.$inputs.each(function() {
+            acc.push(_this.validateInput($(this)));
         });
-        if (counter > 0) {
-            return false;
-        } else {
-            return true;
-        }
+        var noError = acc.indexOf(false) === -1;
+        this.$element.find("[data-abide-error]").css("display", noError ? "none" : "block");
+        this.$element.trigger((noError ? "formvalid" : "forminvalid") + ".zf.abide", [ this.$element ]);
+        return noError;
     };
-    Abide.prototype.matchValidation = function(val, validation) {};
-    Abide.prototype.resetForm = function($form) {
-        var self = this;
-        var invalidAttr = "data-invalid";
-        $("[" + self.invalidAttr + "]", $form).removeAttr(invalidAttr);
-        $("." + self.options.labelErrorClass, $form).not("small").removeClass(self.options.labelErrorClass);
-        $("." + self.options.inputErrorClass, $form).not("small").removeClass(self.options.inputErrorClass);
-        $(".form-error.is-visible").removeClass("is-visible");
+    Abide.prototype.validateText = function($el, pattern) {
+        pattern = pattern || $el.attr("pattern") || $el.attr("type");
+        var inputText = $el.val();
+        return inputText.length ? this.options.patterns.hasOwnProperty(pattern) ? this.options.patterns[pattern].test(inputText) : pattern && pattern !== $el.attr("type") ? new RegExp(pattern).test(inputText) : true : true;
+    };
+    Abide.prototype.validateRadio = function(groupName) {
+        var $group = this.$element.find(':radio[name="' + groupName + '"]'), counter = [], _this = this;
+        $group.each(function() {
+            var rdio = $(this), clear = _this.requiredCheck(rdio);
+            counter.push(clear);
+            if (clear) _this.removeErrorClasses(rdio);
+        });
+        return counter.indexOf(false) === -1;
+    };
+    Abide.prototype.matchValidation = function($el, validators, required) {
+        var _this = this;
+        required = required ? true : false;
+        var clear = validators.split(" ").map(function(v) {
+            return _this.options.validators[v]($el, required, $el.parent());
+        });
+        return clear.indexOf(false) === -1;
+    };
+    Abide.prototype.resetForm = function() {
+        var $form = this.$element, opts = this.options;
+        $("." + opts.labelErrorClass, $form).not("small").removeClass(opts.labelErrorClass);
+        $("." + opts.inputErrorClass, $form).not("small").removeClass(opts.inputErrorClass);
+        $(opts.formErrorSelector + "." + opts.formErrorClass).removeClass(opts.formErrorClass);
         $form.find("[data-abide-error]").css("display", "none");
-        $(":input", $form).not(":button, :submit, :reset, :hidden, [data-abide-ignore]").val("").removeAttr(invalidAttr);
+        $(":input", $form).not(":button, :submit, :reset, :hidden, [data-abide-ignore]").val("").removeAttr("data-invalid");
+        $form.trigger("formreset.zf.abide", [ $form ]);
     };
-    Abide.prototype.destroy = function() {};
+    Abide.prototype.destroy = function() {
+        var _this = this;
+        this.$element.off(".abide").find("[data-abide-error]").css("display", "none");
+        this.$inputs.off(".abide").each(function() {
+            _this.removeErrorClasses($(this));
+        });
+        Foundation.unregisterPlugin(this);
+    };
     Foundation.plugin(Abide, "Abide");
     if (typeof module !== "undefined" && typeof module.exports !== "undefined") module.exports = Abide;
     if (typeof define === "function") define([ "foundation" ], function() {
@@ -6530,7 +6532,7 @@
         this.$element = element;
         this.options = $.extend({}, Accordion.defaults, this.$element.data(), options);
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Accordion");
         Foundation.Keyboard.register("Accordion", {
             ENTER: "toggle",
             SPACE: "toggle",
@@ -6546,6 +6548,9 @@
     Accordion.prototype._init = function() {
         this.$element.attr("role", "tablist");
         this.$tabs = this.$element.children("li");
+        if (this.$tabs.length == 0) {
+            this.$tabs = this.$element.children("[data-accordion-item]");
+        }
         this.$tabs.each(function(idx, el) {
             var $el = $(el), $content = $el.find("[data-tab-content]"), id = $content[0].id || Foundation.GetYoDigits(6, "accordion"), linkId = el.id || id + "-label";
             $el.find("a:first").attr({
@@ -6584,7 +6589,7 @@
                         _this.down($tabContent);
                     }
                 }).on("keydown.zf.accordion", function(e) {
-                    Foundation.Keyboard.handleKey(e, _this, {
+                    Foundation.Keyboard.handleKey(e, "Accordion", {
                         toggle: function() {
                             _this.toggle($tabContent);
                         },
@@ -6623,12 +6628,7 @@
             }
         }
         $target.attr("aria-hidden", false).parent("[data-tab-content]").addBack().parent().addClass("is-active");
-        Foundation.Move(_this.options.slideSpeed, $target, function() {
-            $target.slideDown(_this.options.slideSpeed);
-        });
-        if (!firstTime) {
-            Foundation._reflow(this.$element.attr("data-accordion"));
-        }
+        $target.slideDown(_this.options.slideSpeed);
         $("#" + $target.attr("aria-labelledby")).attr({
             "aria-expanded": true,
             "aria-selected": true
@@ -6641,9 +6641,7 @@
         if (!this.options.allowAllClosed && !canClose) {
             return;
         }
-        Foundation.Move(this.options.slideSpeed, $target, function() {
-            $target.slideUp(_this.options.slideSpeed);
-        });
+        $target.slideUp(_this.options.slideSpeed);
         $target.attr("aria-hidden", true).parent().removeClass("is-active");
         $("#" + $target.attr("aria-labelledby")).attr({
             "aria-expanded": false,
@@ -6666,7 +6664,7 @@
         this.options = $.extend({}, AccordionMenu.defaults, this.$element.data(), options);
         Foundation.Nest.Feather(this.$element, "accordion");
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "AccordionMenu");
         Foundation.Keyboard.register("AccordionMenu", {
             ENTER: "toggle",
             SPACE: "toggle",
@@ -6745,7 +6743,7 @@
                     return;
                 }
             });
-            Foundation.Keyboard.handleKey(e, _this, {
+            Foundation.Keyboard.handleKey(e, "AccordionMenu", {
                 open: function() {
                     if ($target.is(":hidden")) {
                         _this.down($target);
@@ -6785,10 +6783,12 @@
         this.$element.find("[data-submenu]").slideUp(this.options.slideSpeed);
     };
     AccordionMenu.prototype.toggle = function($target) {
-        if (!$target.is(":hidden")) {
-            this.up($target);
-        } else {
-            this.down($target);
+        if (!$target.is(":animated")) {
+            if (!$target.is(":hidden")) {
+                this.up($target);
+            } else {
+                this.down($target);
+            }
         }
     };
     AccordionMenu.prototype.down = function($target) {
@@ -6834,7 +6834,7 @@
         this.options = $.extend({}, Drilldown.defaults, this.$element.data(), options);
         Foundation.Nest.Feather(this.$element, "drilldown");
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Drilldown");
         Foundation.Keyboard.register("Drilldown", {
             ENTER: "open",
             SPACE: "open",
@@ -6848,13 +6848,13 @@
         });
     }
     Drilldown.defaults = {
-        backButton: '<li class="js-drilldown-back" tabindex="0"><a>Back</a></li>',
+        backButton: '<li class="js-drilldown-back"><a>Back</a></li>',
         wrapper: "<div></div>",
         closeOnClick: false
     };
     Drilldown.prototype._init = function() {
         this.$submenuAnchors = this.$element.find("li.has-submenu");
-        this.$submenus = this.$submenuAnchors.children("[data-submenu]").addClass("is-drilldown-sub");
+        this.$submenus = this.$submenuAnchors.children("[data-submenu]");
         this.$menuItems = this.$element.find("li").not(".js-drilldown-back").attr("role", "menuitem");
         this._prepareMenu();
         this._keyboardEvents();
@@ -6863,7 +6863,8 @@
         var _this = this;
         this.$submenuAnchors.each(function() {
             var $sub = $(this);
-            $sub.find("a")[0].removeAttribute("href");
+            var $link = $sub.find("a:first");
+            $link.data("savedHref", $link.attr("href")).removeAttr("href");
             $sub.children("[data-submenu]").attr({
                 "aria-hidden": true,
                 tabindex: 0,
@@ -6875,8 +6876,8 @@
             var $menu = $(this), $back = $menu.find(".js-drilldown-back");
             if (!$back.length) {
                 $menu.prepend(_this.options.backButton);
-                _this._back($menu);
             }
+            _this._back($menu);
         });
         if (!this.$element.parent().hasClass("is-drilldown")) {
             this.$wrapper = $(this.options.wrapper).addClass("is-drilldown").css(this._getMaxDims());
@@ -6886,10 +6887,9 @@
     Drilldown.prototype._events = function($elem) {
         var _this = this;
         $elem.off("click.zf.drilldown").on("click.zf.drilldown", function(e) {
-            e.stopImmediatePropagation();
-            e.preventDefault();
-            if (e.target !== e.currentTarget.firstElementChild) {
-                return false;
+            if ($(e.target).parentsUntil("ul", "li").hasClass("is-drilldown-submenu-parent")) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
             }
             _this._show($elem);
             if (_this.options.closeOnClick) {
@@ -6913,7 +6913,7 @@
                     return;
                 }
             });
-            Foundation.Keyboard.handleKey(e, _this, {
+            Foundation.Keyboard.handleKey(e, "Drilldown", {
                 next: function() {
                     if ($element.is(_this.$submenuAnchors)) {
                         _this._show($element);
@@ -7007,6 +7007,14 @@
         this._hideAll();
         Foundation.Nest.Burn(this.$element, "drilldown");
         this.$element.unwrap().find(".js-drilldown-back").remove().end().find(".is-active, .is-closing, .is-drilldown-sub").removeClass("is-active is-closing is-drilldown-sub").end().find("[data-submenu]").removeAttr("aria-hidden tabindex role").off(".zf.drilldown").end().off("zf.drilldown");
+        this.$element.find("a").each(function() {
+            var $link = $(this);
+            if ($link.data("savedHref")) {
+                $link.attr("href", $link.data("savedHref")).removeData("savedHref");
+            } else {
+                return;
+            }
+        });
         Foundation.unregisterPlugin(this);
     };
     Foundation.plugin(Drilldown, "Drilldown");
@@ -7018,7 +7026,7 @@
         this.$element = element;
         this.options = $.extend({}, Dropdown.defaults, this.$element.data(), options);
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Dropdown");
         Foundation.Keyboard.register("Dropdown", {
             ENTER: "open",
             SPACE: "open",
@@ -7030,11 +7038,13 @@
     Dropdown.defaults = {
         hoverDelay: 250,
         hover: false,
+        hoverPane: false,
         vOffset: 1,
         hOffset: 1,
         positionClass: "",
         trapFocus: false,
-        autoFocus: false
+        autoFocus: false,
+        closeOnClick: false
     };
     Dropdown.prototype._init = function() {
         var $id = this.$element.attr("id");
@@ -7116,50 +7126,77 @@
         if (this.options.hover) {
             this.$anchor.off("mouseenter.zf.dropdown mouseleave.zf.dropdown").on("mouseenter.zf.dropdown", function() {
                 clearTimeout(_this.timeout);
-                _this.timeOut = setTimeout(function() {
+                _this.timeout = setTimeout(function() {
                     _this.open();
                     _this.$anchor.data("hover", true);
                 }, _this.options.hoverDelay);
             }).on("mouseleave.zf.dropdown", function() {
                 clearTimeout(_this.timeout);
-                _this.timeOut = setTimeout(function() {
+                _this.timeout = setTimeout(function() {
                     _this.close();
                     _this.$anchor.data("hover", false);
                 }, _this.options.hoverDelay);
             });
+            if (this.options.hoverPane) {
+                this.$element.off("mouseenter.zf.dropdown mouseleave.zf.dropdown").on("mouseenter.zf.dropdown", function() {
+                    clearTimeout(_this.timeout);
+                }).on("mouseleave.zf.dropdown", function() {
+                    clearTimeout(_this.timeout);
+                    _this.timeout = setTimeout(function() {
+                        _this.close();
+                        _this.$anchor.data("hover", false);
+                    }, _this.options.hoverDelay);
+                });
+            }
         }
         this.$anchor.add(this.$element).on("keydown.zf.dropdown", function(e) {
-            var visibleFocusableElements = Foundation.Keyboard.findFocusable(_this.$element);
-            Foundation.Keyboard.handleKey(e, _this, {
+            var $target = $(this), visibleFocusableElements = Foundation.Keyboard.findFocusable(_this.$element);
+            Foundation.Keyboard.handleKey(e, "Dropdown", {
                 tab_forward: function() {
-                    if (this.$element.find(":focus").is(visibleFocusableElements.eq(-1))) {
-                        if (this.options.trapFocus) {
+                    if (_this.$element.find(":focus").is(visibleFocusableElements.eq(-1))) {
+                        if (_this.options.trapFocus) {
                             visibleFocusableElements.eq(0).focus();
                             e.preventDefault();
                         } else {
-                            this.close();
+                            _this.close();
                         }
                     }
                 },
                 tab_backward: function() {
-                    if (this.$element.find(":focus").is(visibleFocusableElements.eq(0)) || this.$element.is(":focus")) {
-                        if (this.options.trapFocus) {
+                    if (_this.$element.find(":focus").is(visibleFocusableElements.eq(0)) || _this.$element.is(":focus")) {
+                        if (_this.options.trapFocus) {
                             visibleFocusableElements.eq(-1).focus();
                             e.preventDefault();
                         } else {
-                            this.close();
+                            _this.close();
                         }
                     }
                 },
                 open: function() {
-                    _this.open();
-                    _this.$element.attr("tabindex", -1).focus();
+                    if ($target.is(_this.$anchor)) {
+                        _this.open();
+                        _this.$element.attr("tabindex", -1).focus();
+                        e.preventDefault();
+                    }
                 },
                 close: function() {
                     _this.close();
                     _this.$anchor.focus();
                 }
             });
+        });
+    };
+    Dropdown.prototype._addBodyHandler = function() {
+        var $body = $(document.body).not(this.$element), _this = this;
+        $body.off("click.zf.dropdown").on("click.zf.dropdown", function(e) {
+            if (_this.$anchor.is(e.target) || _this.$anchor.find(e.target).length) {
+                return;
+            }
+            if (_this.$element.find(e.target).length) {
+                return;
+            }
+            _this.close();
+            $body.off("click.zf.dropdown");
         });
     };
     Dropdown.prototype.open = function() {
@@ -7176,6 +7213,9 @@
             if ($focusable.length) {
                 $focusable.eq(0).focus();
             }
+        }
+        if (this.options.closeOnClick) {
+            this._addBodyHandler();
         }
         this.$element.trigger("show.zf.dropdown", [ this.$element ]);
     };
@@ -7225,7 +7265,7 @@
         this.options = $.extend({}, DropdownMenu.defaults, this.$element.data(), options);
         Foundation.Nest.Feather(this.$element, "dropdown");
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "DropdownMenu");
         Foundation.Keyboard.register("DropdownMenu", {
             ENTER: "open",
             SPACE: "open",
@@ -7243,8 +7283,10 @@
         clickOpen: false,
         closingTime: 500,
         alignment: "left",
+        closeOnClick: true,
         verticalClass: "vertical",
-        rightClass: "align-right"
+        rightClass: "align-right",
+        forceFollow: true
     };
     DropdownMenu.prototype._init = function() {
         var subs = this.$element.find("li.is-dropdown-submenu-parent");
@@ -7266,13 +7308,13 @@
         this._events();
     };
     DropdownMenu.prototype._events = function() {
-        var _this = this, hasTouch = "ontouchstart" in window || window.ontouchstart !== undefined, parClass = "is-dropdown-submenu-parent", delay;
+        var _this = this, hasTouch = "ontouchstart" in window || typeof window.ontouchstart !== "undefined", parClass = "is-dropdown-submenu-parent", delay;
         if (this.options.clickOpen || hasTouch) {
-            this.$menuItems.on("click.zf.dropdownmenu", function(e) {
+            this.$menuItems.on("click.zf.dropdownmenu touchstart.zf.dropdownmenu", function(e) {
                 var $elem = $(e.target).parentsUntil("ul", "." + parClass), hasSub = $elem.hasClass(parClass), hasClicked = $elem.attr("data-is-click") === "true", $sub = $elem.children(".is-dropdown-submenu");
                 if (hasSub) {
                     if (hasClicked) {
-                        if (hasTouch) {
+                        if (!_this.options.closeOnClick || !_this.options.clickOpen && !hasTouch || _this.options.forceFollow && hasTouch) {
                             return;
                         } else {
                             e.stopImmediatePropagation();
@@ -7280,8 +7322,8 @@
                             _this._hide($elem);
                         }
                     } else {
-                        e.stopImmediatePropagation();
                         e.preventDefault();
+                        e.stopImmediatePropagation();
                         _this._show($elem.children(".is-dropdown-submenu"));
                         $elem.add($elem.parentsUntil(_this.$element, "." + parClass)).attr("data-is-click", true);
                     }
@@ -7391,7 +7433,18 @@
                     });
                 }
             }
-            Foundation.Keyboard.handleKey(e, _this, functions);
+            Foundation.Keyboard.handleKey(e, "DropdownMenu", functions);
+        });
+    };
+    DropdownMenu.prototype._addBodyHandler = function() {
+        var $body = $(document.body), _this = this;
+        $body.off("mouseup.zf.dropdownmenu touchend.zf.dropdownmenu").on("mouseup.zf.dropdownmenu touchend.zf.dropdownmenu", function(e) {
+            var $link = _this.$element.find(e.target);
+            if ($link.length) {
+                return;
+            }
+            _this._hide();
+            $body.off("mouseup.zf.dropdownmenu touchend.zf.dropdownmenu");
         });
     };
     DropdownMenu.prototype._show = function($sub) {
@@ -7417,6 +7470,9 @@
             this.changed = true;
         }
         $sub.css("visibility", "");
+        if (this.options.closeOnClick) {
+            this._addBodyHandler();
+        }
         this.$element.trigger("show.zf.dropdownmenu", [ $sub ]);
     };
     DropdownMenu.prototype._hide = function($elem, idx) {
@@ -7461,62 +7517,150 @@
     function Equalizer(element, options) {
         this.$element = element;
         this.options = $.extend({}, Equalizer.defaults, this.$element.data(), options);
-        this.$window = $(window);
-        this.name = "equalizer";
-        this.attr = "data-equalizer";
         this._init();
-        this._events();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Equalizer");
     }
     Equalizer.defaults = {
         equalizeOnStack: true,
-        throttleInterval: 50
+        equalizeByRow: false,
+        equalizeOn: ""
     };
     Equalizer.prototype._init = function() {
-        this._reflow();
+        var eqId = this.$element.attr("data-equalizer") || "";
+        var $watched = this.$element.find('[data-equalizer-watch="' + eqId + '"]');
+        this.$watched = $watched.length ? $watched : this.$element.find("[data-equalizer-watch]");
+        this.$element.attr("data-resize", eqId || Foundation.GetYoDigits(6, "eq"));
+        this.hasNested = this.$element.find("[data-equalizer]").length > 0;
+        this.isNested = this.$element.parentsUntil(document.body, "[data-equalizer]").length > 0;
+        this.isOn = false;
+        var imgs = this.$element.find("img");
+        var tooSmall;
+        if (this.options.equalizeOn) {
+            tooSmall = this._checkMQ();
+            $(window).on("changed.zf.mediaquery", this._checkMQ.bind(this));
+        } else {
+            this._events();
+        }
+        if (tooSmall !== undefined && tooSmall === false || tooSmall === undefined) {
+            if (imgs.length) {
+                Foundation.onImagesLoaded(imgs, this._reflow.bind(this));
+            } else {
+                this._reflow();
+            }
+        }
+    };
+    Equalizer.prototype._pauseEvents = function() {
+        this.isOn = false;
+        this.$element.off(".zf.equalizer resizeme.zf.trigger");
     };
     Equalizer.prototype._events = function() {
-        var self = this;
-        this.$window.off(".equalizer").on("resize.fndtn.equalizer", Foundation.util.throttle(function() {
-            self._reflow();
-        }, self.options.throttleInterval));
+        var _this = this;
+        this._pauseEvents();
+        if (this.hasNested) {
+            this.$element.on("postequalized.zf.equalizer", function(e) {
+                if (e.target !== _this.$element[0]) {
+                    _this._reflow();
+                }
+            });
+        } else {
+            this.$element.on("resizeme.zf.trigger", this._reflow.bind(this));
+        }
+        this.isOn = true;
+    };
+    Equalizer.prototype._checkMQ = function() {
+        var tooSmall = !Foundation.MediaQuery.atLeast(this.options.equalizeOn);
+        if (tooSmall) {
+            if (this.isOn) {
+                this._pauseEvents();
+                this.$watched.css("height", "auto");
+            }
+        } else {
+            if (!this.isOn) {
+                this._events();
+            }
+        }
+        return tooSmall;
     };
     Equalizer.prototype._killswitch = function() {
         return;
     };
     Equalizer.prototype._reflow = function() {
-        var self = this;
-        $("[" + this.attr + "]").each(function() {
-            var $eqParent = $(this), adjustedHeights = [], $images = $eqParent.find("img");
-            if ($images.length) {
-                Foundation.onImagesLoaded($images, function() {
-                    adjustedHeights = self.getHeights($eqParent);
-                    self.applyHeight($eqParent, adjustedHeights);
-                });
-            } else {
-                adjustedHeights = self.getHeights($eqParent);
-                self.applyHeight($eqParent, adjustedHeights);
+        if (!this.options.equalizeOnStack) {
+            if (this._isStacked()) {
+                this.$watched.css("height", "auto");
+                return false;
             }
-        });
-    };
-    Equalizer.prototype.getHeights = function($eqParent) {
-        var eqGroupName = $eqParent.data("equalizer"), eqGroup = eqGroupName ? $eqParent.find("[" + this.attr + '-watch="' + eqGroupName + '"]:visible') : $eqParent.find("[" + this.attr + "-watch]:visible"), heights;
-        eqGroup.height("inherit");
-        heights = eqGroup.map(function() {
-            return $(this).outerHeight(false);
-        }).get();
-        console.log(heights);
-        return heights;
-    };
-    Equalizer.prototype.applyHeight = function($eqParent, heights) {
-        var eqGroupName = $eqParent.data("equalizer"), eqGroup = eqGroupName ? $eqParent.find("[" + this.attr + '-watch="' + eqGroupName + '"]:visible') : $eqParent.find("[" + this.attr + "-watch]:visible"), max = Math.max.apply(null, heights);
-        $eqParent.trigger("preEqualized.zf.Equalizer");
-        for (var i = 0; i < eqGroup.length; i++) {
-            $(eqGroup[i]).css("height", max);
         }
-        $eqParent.trigger("postEqualized.zf.Equalizer");
+        if (this.options.equalizeByRow) {
+            this.getHeightsByRow(this.applyHeightByRow.bind(this));
+        } else {
+            this.getHeights(this.applyHeight.bind(this));
+        }
     };
-    Equalizer.prototype.destroy = function() {};
+    Equalizer.prototype._isStacked = function() {
+        return this.$watched[0].offsetTop !== this.$watched[1].offsetTop;
+    };
+    Equalizer.prototype.getHeights = function(cb) {
+        var heights = [];
+        for (var i = 0, len = this.$watched.length; i < len; i++) {
+            this.$watched[i].style.height = "auto";
+            heights.push(this.$watched[i].offsetHeight);
+        }
+        cb(heights);
+    };
+    Equalizer.prototype.getHeightsByRow = function(cb) {
+        var lastElTopOffset = this.$watched.first().offset().top, groups = [], group = 0;
+        groups[group] = [];
+        for (var i = 0, len = this.$watched.length; i < len; i++) {
+            this.$watched[i].style.height = "auto";
+            var elOffsetTop = $(this.$watched[i]).offset().top;
+            if (elOffsetTop != lastElTopOffset) {
+                group++;
+                groups[group] = [];
+                lastElTopOffset = elOffsetTop;
+            }
+            groups[group].push([ this.$watched[i], this.$watched[i].offsetHeight ]);
+        }
+        for (var i = 0, len = groups.length; i < len; i++) {
+            var heights = $(groups[i]).map(function() {
+                return this[1];
+            }).get();
+            var max = Math.max.apply(null, heights);
+            groups[i].push(max);
+        }
+        cb(groups);
+    };
+    Equalizer.prototype.applyHeight = function(heights) {
+        var max = Math.max.apply(null, heights);
+        this.$element.trigger("preequalized.zf.equalizer");
+        this.$watched.css("height", max);
+        this.$element.trigger("postequalized.zf.equalizer");
+    };
+    Equalizer.prototype.applyHeightByRow = function(groups) {
+        this.$element.trigger("preequalized.zf.equalizer");
+        for (var i = 0, len = groups.length; i < len; i++) {
+            var groupsILength = groups[i].length, max = groups[i][groupsILength - 1];
+            if (groupsILength <= 2) {
+                $(groups[i][0][0]).css({
+                    height: "auto"
+                });
+                continue;
+            }
+            this.$element.trigger("preequalizedrow.zf.equalizer");
+            for (var j = 0, lenJ = groupsILength - 1; j < lenJ; j++) {
+                $(groups[i][j][0]).css({
+                    height: max
+                });
+            }
+            this.$element.trigger("postequalizedrow.zf.equalizer");
+        }
+        this.$element.trigger("postequalized.zf.equalizer");
+    };
+    Equalizer.prototype.destroy = function() {
+        this._pauseEvents();
+        this.$watched.css("height", "auto");
+        Foundation.unregisterPlugin(this);
+    };
     Foundation.plugin(Equalizer, "Equalizer");
     if (typeof module !== "undefined" && typeof module.exports !== "undefined") module.exports = Equalizer;
     if (typeof define === "function") define([ "foundation" ], function() {
@@ -7533,7 +7677,7 @@
         this.currentPath = "";
         this._init();
         this._events();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Interchange");
     }
     Interchange.defaults = {
         rules: null
@@ -7549,7 +7693,7 @@
         this._reflow();
     };
     Interchange.prototype._events = function() {
-        $(window).on("resize.fndtn.interchange", Foundation.util.throttle(this._reflow.bind(this), 50));
+        $(window).on("resize.zf.interchange", Foundation.util.throttle(this._reflow.bind(this), 50));
     };
     Interchange.prototype._reflow = function() {
         var match;
@@ -7596,7 +7740,6 @@
         var _this = this;
         if (this.$element[0].nodeName === "IMG") {
             this.$element.attr("src", path).load(function() {
-                _this.$element.trigger("replaced.zf.interchange");
                 _this.currentPath = path;
             });
         } else if (path.match(/\.(gif|jpg|jpeg|tiff|png)([?#].*)?/i)) {
@@ -7606,10 +7749,11 @@
         } else {
             $.get(path, function(response) {
                 _this.$element.html(response);
-                _this.$element.trigger("replaced.zf.interchange");
+                $(response).foundation();
                 _this.currentPath = path;
             });
         }
+        this.$element.trigger("replaced.zf.interchange");
     };
     Interchange.prototype.destroy = function() {};
     Foundation.plugin(Interchange, "Interchange");
@@ -7623,16 +7767,17 @@
     "use strict";
     function Magellan(element, options) {
         this.$element = element;
-        this.options = $.extend({}, Magellan.defaults, options);
+        this.options = $.extend({}, Magellan.defaults, this.$element.data(), options);
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Magellan");
     }
     Magellan.defaults = {
         animationDuration: 500,
         animationEasing: "linear",
         threshold: 50,
         activeClass: "active",
-        deepLinking: false
+        deepLinking: false,
+        barOffset: 0
     };
     Magellan.prototype._init = function() {
         var id = this.$element[0].id || Foundation.GetYoDigits(6, "magellan"), _this = this;
@@ -7650,7 +7795,7 @@
     Magellan.prototype.calcPoints = function() {
         var _this = this, body = document.body, html = document.documentElement;
         this.points = [];
-        this.winHeight = Math.round(Math.max(window.innerHeight, document.body.clientHeight));
+        this.winHeight = Math.round(Math.max(window.innerHeight, html.clientHeight));
         this.docHeight = Math.round(Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight));
         this.$targets.each(function() {
             var $tar = $(this), pt = Math.round($tar.offset().top - _this.options.threshold);
@@ -7672,7 +7817,7 @@
             "scrollme.zf.trigger": this._updateActive.bind(this)
         }).on("click.zf.magellan", 'a[href^="#"]', function(e) {
             e.preventDefault();
-            var arrival = this.getAttribute("href"), scrollPos = $(arrival).offset().top - _this.options.threshold / 2;
+            var arrival = this.getAttribute("href"), scrollPos = $(arrival).offset().top - _this.options.threshold / 2 - _this.options.barOffset;
             $body.stop(true).animate({
                 scrollTop: scrollPos
             }, opts);
@@ -7730,7 +7875,7 @@
         this.$lastTrigger = $();
         this._init();
         this._events();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "OffCanvas");
     }
     OffCanvas.defaults = {
         closeOnClick: true,
@@ -7740,7 +7885,8 @@
         isRevealed: false,
         revealOn: null,
         autoFocus: true,
-        revealClass: "reveal-for-"
+        revealClass: "reveal-for-",
+        trapFocus: false
     };
     OffCanvas.prototype._init = function() {
         var id = this.$element.attr("id");
@@ -7766,7 +7912,7 @@
         }
     };
     OffCanvas.prototype._events = function() {
-        this.$element.on({
+        this.$element.off(".zf.trigger .zf.offcanvas").on({
             "open.zf.trigger": this.open.bind(this),
             "close.zf.trigger": this.close.bind(this),
             "toggle.zf.trigger": this.toggle.bind(this),
@@ -7796,25 +7942,34 @@
     OffCanvas.prototype.reveal = function(isRevealed) {
         var $closer = this.$element.find("[data-close]");
         if (isRevealed) {
+            this.close();
+            this.isRevealed = true;
+            this.$element.off("open.zf.trigger toggle.zf.trigger");
             if ($closer.length) {
                 $closer.hide();
             }
         } else {
+            this.isRevealed = false;
+            this.$element.on({
+                "open.zf.trigger": this.open.bind(this),
+                "toggle.zf.trigger": this.toggle.bind(this)
+            });
             if ($closer.length) {
                 $closer.show();
             }
         }
     };
     OffCanvas.prototype.open = function(event, trigger) {
-        if (this.$element.hasClass("is-open")) {
+        if (this.$element.hasClass("is-open") || this.isRevealed) {
             return;
         }
         var _this = this, $body = $(document.body);
         $("body").scrollTop(0);
         Foundation.Move(this.options.transitionTime, this.$element, function() {
             $("[data-off-canvas-wrapper]").addClass("is-off-canvas-open is-open-" + _this.options.position);
-            _this.$element.addClass("is-open").attr("aria-hidden", "false").trigger("opened.zf.offcanvas");
+            _this.$element.addClass("is-open");
         });
+        this.$element.attr("aria-hidden", "false").trigger("opened.zf.offcanvas");
         if (trigger) {
             this.$lastTrigger = trigger.attr("aria-expanded", "true");
         }
@@ -7823,18 +7978,38 @@
                 _this.$element.find("a, button").eq(0).focus();
             });
         }
+        if (this.options.trapFocus) {
+            $("[data-off-canvas-content]").attr("tabindex", "-1");
+            this._trapFocus();
+        }
     };
-    OffCanvas.prototype.close = function() {
-        if (!this.$element.hasClass("is-open")) {
+    OffCanvas.prototype._trapFocus = function() {
+        var focusable = Foundation.Keyboard.findFocusable(this.$element), first = focusable.eq(0), last = focusable.eq(-1);
+        focusable.off(".zf.offcanvas").on("keydown.zf.offcanvas", function(e) {
+            if (e.which === 9 || e.keycode === 9) {
+                if (e.target === last[0] && !e.shiftKey) {
+                    e.preventDefault();
+                    first.focus();
+                }
+                if (e.target === first[0] && e.shiftKey) {
+                    e.preventDefault();
+                    last.focus();
+                }
+            }
+        });
+    };
+    OffCanvas.prototype.close = function(cb) {
+        if (!this.$element.hasClass("is-open") || this.isRevealed) {
             return;
         }
         var _this = this;
-        Foundation.Move(this.options.transitionTime, this.$element, function() {
-            $("[data-off-canvas-wrapper]").removeClass("is-off-canvas-open is-open-" + _this.options.position);
-            _this.$element.removeClass("is-open");
-        });
+        $("[data-off-canvas-wrapper]").removeClass("is-off-canvas-open is-open-" + _this.options.position);
+        _this.$element.removeClass("is-open");
         this.$element.attr("aria-hidden", "true").trigger("closed.zf.offcanvas");
         this.$lastTrigger.attr("aria-expanded", "false");
+        if (this.options.trapFocus) {
+            $("[data-off-canvas-content]").removeAttr("tabindex");
+        }
     };
     OffCanvas.prototype.toggle = function(event, trigger) {
         if (this.$element.hasClass("is-open")) {
@@ -7850,7 +8025,12 @@
         this.close();
         this.$lastTrigger.focus();
     };
-    OffCanvas.prototype.destroy = function() {};
+    OffCanvas.prototype.destroy = function() {
+        this.close();
+        this.$element.off(".zf.trigger .zf.offcanvas");
+        this.$exiter.off(".zf.offcanvas");
+        Foundation.unregisterPlugin(this);
+    };
     Foundation.plugin(OffCanvas, "OffCanvas");
 }(jQuery, Foundation);
 
@@ -7860,7 +8040,7 @@
         this.$element = element;
         this.options = $.extend({}, Orbit.defaults, this.$element.data(), options);
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Orbit");
         Foundation.Keyboard.register("Orbit", {
             ltr: {
                 ARROW_RIGHT: "next",
@@ -7889,7 +8069,8 @@
         slideClass: "orbit-slide",
         boxOfBullets: "orbit-bullets",
         nextClass: "orbit-next",
-        prevClass: "orbit-previous"
+        prevClass: "orbit-previous",
+        useMUI: true
     };
     Orbit.prototype._init = function() {
         this.$wrapper = this.$element.find("." + this.options.containerClass);
@@ -7897,6 +8078,9 @@
         var $images = this.$element.find("img"), initActive = this.$slides.filter(".is-active");
         if (!initActive.length) {
             this.$slides.eq(0).addClass("is-active");
+        }
+        if (!this.options.useMUI) {
+            this.$slides.addClass("no-motionui");
         }
         if ($images.length) {
             Foundation.onImagesLoaded($images, this._prepareForOrbit.bind(this));
@@ -8001,7 +8185,7 @@
             });
         }
         this.$wrapper.add(this.$bullets).on("keydown.zf.orbit", function(e) {
-            Foundation.Keyboard.handleKey(e, _this, {
+            Foundation.Keyboard.handleKey(e, "Orbit", {
                 next: function() {
                     _this.changeSlide(true);
                 },
@@ -8032,22 +8216,30 @@
                 idx = idx || this.$slides.index($newSlide);
                 this._updateBullets(idx);
             }
-            Foundation.Motion.animateIn($newSlide.addClass("is-active").css({
-                position: "absolute",
-                top: 0
-            }), this.options["animInFrom" + dirIn], function() {
-                $newSlide.css({
-                    position: "relative",
-                    display: "block"
-                }).attr("aria-live", "polite");
-            });
-            Foundation.Motion.animateOut($curSlide.removeClass("is-active"), this.options["animOutTo" + dirOut], function() {
-                $curSlide.removeAttr("aria-live");
-                if (_this.options.autoPlay) {
-                    _this.timer.restart();
+            if (this.options.useMUI) {
+                Foundation.Motion.animateIn($newSlide.addClass("is-active").css({
+                    position: "absolute",
+                    top: 0
+                }), this.options["animInFrom" + dirIn], function() {
+                    $newSlide.css({
+                        position: "relative",
+                        display: "block"
+                    }).attr("aria-live", "polite");
+                });
+                Foundation.Motion.animateOut($curSlide.removeClass("is-active"), this.options["animOutTo" + dirOut], function() {
+                    $curSlide.removeAttr("aria-live");
+                    if (_this.options.autoPlay) {
+                        _this.timer.restart();
+                    }
+                });
+            } else {
+                $curSlide.removeClass("is-active is-in").removeAttr("aria-live").hide();
+                $newSlide.addClass("is-active is-in").attr("aria-live", "polite").show();
+                if (this.options.autoPlay) {
+                    this.timer.restart();
                 }
-                _this.$element.trigger("slidechange.zf.orbit", [ $newSlide ]);
-            });
+            }
+            this.$element.trigger("slidechange.zf.orbit", [ $newSlide ]);
         }
     };
     Orbit.prototype._updateBullets = function(idx) {
@@ -8088,7 +8280,7 @@
         this.currentPlugin = null;
         this._init();
         this._events();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "ResponsiveMenu");
     }
     ResponsiveMenu.defaults = {};
     ResponsiveMenu.prototype._init = function() {
@@ -8144,7 +8336,7 @@
         this.options = $.extend({}, ResponsiveToggle.defaults, this.$element.data(), options);
         this._init();
         this._events();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "ResponsiveToggle");
     }
     ResponsiveToggle.defaults = {
         hideFor: "medium"
@@ -8188,7 +8380,7 @@
         this.$element = element;
         this.options = $.extend({}, Reveal.defaults, this.$element.data(), options);
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Reveal");
         Foundation.Keyboard.register("Reveal", {
             ENTER: "open",
             SPACE: "open",
@@ -8232,7 +8424,7 @@
             this.options.fullScreen = true;
             this.options.overlay = false;
         }
-        if (this.options.overlay) {
+        if (this.options.overlay && !this.$overlay) {
             this.$overlay = this._makeOverlay(this.id);
         }
         this.$element.attr({
@@ -8284,7 +8476,6 @@
         var eleDims = Foundation.Box.GetDimensions(this.$element);
         var elePos = this.options.fullScreen ? "reveal full" : eleDims.height >= .5 * eleDims.windowDims.height ? "reveal" : "center";
         if (elePos === "reveal full") {
-            console.log("full");
             this.$element.offset(Foundation.Box.GetOffsets(this.$element, null, elePos, this.options.vOffset)).css({
                 height: eleDims.windowDims.height,
                 width: eleDims.windowDims.width
@@ -8318,10 +8509,14 @@
             if (_this.options.animationIn) {
                 if (_this.options.overlay) {
                     Foundation.Motion.animateIn(_this.$overlay, "fade-in", function() {
-                        Foundation.Motion.animateIn(_this.$element, _this.options.animationIn, function() {});
+                        Foundation.Motion.animateIn(_this.$element, _this.options.animationIn, function() {
+                            _this.focusableElements = Foundation.Keyboard.findFocusable(_this.$element);
+                        });
                     });
                 } else {
-                    Foundation.Motion.animateIn(_this.$element, _this.options.animationIn, function() {});
+                    Foundation.Motion.animateIn(_this.$element, _this.options.animationIn, function() {
+                        _this.focusableElements = Foundation.Keyboard.findFocusable(_this.$element);
+                    });
                 }
             } else {
                 if (_this.options.overlay) {
@@ -8345,12 +8540,7 @@
     };
     Reveal.prototype._extraHandlers = function() {
         var _this = this;
-        var visibleFocusableElements = this.$element.find("a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), iframe, object, embed, *[tabindex], *[contenteditable]").filter(function() {
-            if (!$(this).is(":visible") || $(this).attr("tabindex") < 0) {
-                return false;
-            }
-            return true;
-        });
+        this.focusableElements = Foundation.Keyboard.findFocusable(this.$element);
         if (!this.options.overlay && this.options.closeOnClick && !this.options.fullScreen) {
             $("body").on("click.zf.reveal", function(e) {
                 _this.close();
@@ -8358,47 +8548,50 @@
         }
         if (this.options.closeOnEsc) {
             $(window).on("keydown.zf.reveal", function(e) {
-                if (visibleFocusableElements.length === 0) {
-                    e.preventDefault();
-                }
-                Foundation.Keyboard.handleKey(e, _this, {
+                Foundation.Keyboard.handleKey(e, "Reveal", {
                     close: function() {
-                        if (this.options.closeOnEsc) {
-                            this.close();
+                        if (_this.options.closeOnEsc) {
+                            _this.close();
+                            _this.$anchor.focus();
                         }
                     }
                 });
+                if (_this.focusableElements.length === 0) {
+                    e.preventDefault();
+                }
             });
         }
         this.$element.on("keydown.zf.reveal", function(e) {
             var $target = $(this);
-            Foundation.Keyboard.handleKey(e, _this, {
+            Foundation.Keyboard.handleKey(e, "Reveal", {
                 tab_forward: function() {
-                    if (this.$element.find(":focus").is(visibleFocusableElements.eq(-1))) {
-                        visibleFocusableElements.eq(0).focus();
+                    if (_this.$element.find(":focus").is(_this.focusableElements.eq(-1))) {
+                        _this.focusableElements.eq(0).focus();
                         e.preventDefault();
                     }
                 },
                 tab_backward: function() {
-                    if (this.$element.find(":focus").is(visibleFocusableElements.eq(0)) || this.$element.is(":focus")) {
-                        visibleFocusableElements.eq(-1).focus();
+                    if (_this.$element.find(":focus").is(_this.focusableElements.eq(0)) || _this.$element.is(":focus")) {
+                        _this.focusableElements.eq(-1).focus();
                         e.preventDefault();
                     }
                 },
                 open: function() {
-                    if ($target.is(visibleFocusableElements)) {
-                        this.open();
+                    if (_this.$element.find(":focus").is(_this.$element.find("[data-close]"))) {
+                        setTimeout(function() {
+                            _this.$anchor.focus();
+                        }, 1);
+                    } else if ($target.is(_this.focusableElements)) {
+                        _this.open();
                     }
                 },
                 close: function() {
-                    if (this.options.closeOnEsc) {
-                        this.close();
+                    if (_this.options.closeOnEsc) {
+                        _this.close();
+                        _this.$anchor.focus();
                     }
                 }
             });
-            if (visibleFocusableElements.length === 0) {
-                e.preventDefault();
-            }
         });
     };
     Reveal.prototype.close = function() {
@@ -8472,7 +8665,7 @@
         this.$element = element;
         this.options = $.extend({}, Slider.defaults, this.$element.data(), options);
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Slider");
         Foundation.Keyboard.register("Slider", {
             ltr: {
                 ARROW_RIGHT: "increase",
@@ -8528,7 +8721,7 @@
         if (this.handles[1]) {
             this.options.doubleSided = true;
             this.$handle2 = this.handles.eq(1);
-            this.$input2 = this.inputs.length ? this.inputs.eq(1) : $("#" + this.$handle2.attr("aria-controls"));
+            this.$input2 = this.inputs.length > 1 ? this.inputs.eq(1) : $("#" + this.$handle2.attr("aria-controls"));
             if (!this.inputs[1]) {
                 this.inputs = this.inputs.add(this.$input2);
             }
@@ -8563,7 +8756,7 @@
         if (this.options.vertical && !noInvert) {
             location = this.options.end - location;
         }
-        var _this = this, vert = this.options.vertical, hOrW = vert ? "height" : "width", lOrT = vert ? "top" : "left", halfOfHandle = $hndl[0].getBoundingClientRect()[hOrW] / 2, elemDim = this.$element[0].getBoundingClientRect()[hOrW], pctOfBar = percent(location, this.options.end).toFixed(this.options.decimal), pxToMove = (elemDim - halfOfHandle) * pctOfBar, movement = (percent(pxToMove, elemDim) * 100).toFixed(this.options.decimal), location = location > 0 ? parseFloat(location.toFixed(this.options.decimal)) : 0, anim, prog, start = null, css = {};
+        var _this = this, vert = this.options.vertical, hOrW = vert ? "height" : "width", lOrT = vert ? "top" : "left", halfOfHandle = $hndl[0].getBoundingClientRect()[hOrW] / 2, elemDim = this.$element[0].getBoundingClientRect()[hOrW], pctOfBar = percent(location, this.options.end).toFixed(2), pxToMove = (elemDim - halfOfHandle) * pctOfBar, movement = (percent(pxToMove, elemDim) * 100).toFixed(this.options.decimal), location = location > 0 ? parseFloat(location.toFixed(this.options.decimal)) : 0, anim, prog, start = null, css = {};
         this._setValues($hndl, location);
         if (this.options.doubleSided) {
             var isLeftHndl = this.handles.index($hndl) === 0, dim, idx = this.handles.index($hndl);
@@ -8575,7 +8768,8 @@
                     cb();
                 }
             } else {
-                location = (location < 100 ? location : 100) - (parseFloat(this.$handle[0].style.left) || this.options.end - location);
+                var handleLeft = parseFloat(this.$handle[0].style.left);
+                location = (location < 100 ? location : 100) - (!isNaN(handleLeft) ? handleLeft : this.options.end - location);
                 css["min-" + hOrW] = location + "%";
             }
         }
@@ -8679,7 +8873,7 @@
         $handle.off("keydown.zf.slider").on("keydown.zf.slider", function(e) {
             var idx = _this.options.doubleSided ? _this.handles.index($(this)) : 0, oldValue = parseFloat(_this.inputs.eq(idx).val()), newValue;
             var _$handle = $(this);
-            Foundation.Keyboard.handleKey(e, _this, {
+            Foundation.Keyboard.handleKey(e, "Slider", {
                 decrease: function() {
                     newValue = oldValue - _this.options.step;
                 },
@@ -8720,7 +8914,7 @@
         this.$element = element;
         this.options = $.extend({}, Sticky.defaults, this.$element.data(), options);
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Sticky");
     }
     Sticky.defaults = {
         container: "<div data-sticky-container></div>",
@@ -8747,10 +8941,10 @@
         });
         this.scrollCount = this.options.checkEvery;
         this.isStuck = false;
-        if (this.options.topAnchor !== "") {
-            this._parsePoints();
+        if (this.options.anchor !== "") {
+            this.$anchor = $("#" + this.options.anchor);
         } else {
-            this.$anchor = this.options.anchor ? $("#" + this.options.anchor) : $(document.body);
+            this._parsePoints();
         }
         this._setSizes(function() {
             _this._calc(false);
@@ -8759,24 +8953,31 @@
     };
     Sticky.prototype._parsePoints = function() {
         var top = this.options.topAnchor, btm = this.options.btmAnchor, pts = [ top, btm ], breaks = {};
-        for (var i = 0, len = pts.length; i < len && pts[i]; i++) {
-            var pt;
-            if (typeof pts[i] === "number") {
-                pt = pts[i];
-            } else {
-                var place = pts[i].split(":"), anchor = $("#" + place[0]);
-                pt = anchor.offset().top;
-                if (place[1] && place[1].toLowerCase() === "bottom") {
-                    pt += anchor[0].getBoundingClientRect().height;
+        if (top && btm) {
+            for (var i = 0, len = pts.length; i < len && pts[i]; i++) {
+                var pt;
+                if (typeof pts[i] === "number") {
+                    pt = pts[i];
+                } else {
+                    var place = pts[i].split(":"), anchor = $("#" + place[0]);
+                    pt = anchor.offset().top;
+                    if (place[1] && place[1].toLowerCase() === "bottom") {
+                        pt += anchor[0].getBoundingClientRect().height;
+                    }
                 }
+                breaks[i] = pt;
             }
-            breaks[i] = pt;
+        } else {
+            breaks = {
+                0: 1,
+                1: document.documentElement.scrollHeight
+            };
         }
         this.points = breaks;
         return;
     };
     Sticky.prototype._events = function(id) {
-        var _this = this, scrollListener = "scroll.zf." + id;
+        var _this = this, scrollListener = this.scrollListener = "scroll.zf." + id;
         if (this.isOn) {
             return;
         }
@@ -8926,7 +9127,7 @@
             "max-width": ""
         }).off("resizeme.zf.trigger");
         this.$anchor.off("change.zf.sticky");
-        $(window).off("scroll.zf.sticky");
+        $(window).off(this.scrollListener);
         if (this.wasWrapped) {
             this.$element.unwrap();
         } else {
@@ -8948,7 +9149,7 @@
         this.$element = element;
         this.options = $.extend({}, Tabs.defaults, this.$element.data(), options);
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Tabs");
         Foundation.Keyboard.register("Tabs", {
             ENTER: "open",
             SPACE: "open",
@@ -9008,7 +9209,7 @@
     };
     Tabs.prototype._addClickHandler = function() {
         var _this = this;
-        this.$tabTitles.off("click.zf.tabs").on("click.zf.tabs", function(e) {
+        this.$element.off("click.zf.tabs").on("click.zf.tabs", "." + this.options.linkClass, function(e) {
             e.preventDefault();
             e.stopPropagation();
             if ($(this).hasClass("is-active")) {
@@ -9022,6 +9223,7 @@
         var $firstTab = _this.$element.find("li:first-of-type");
         var $lastTab = _this.$element.find("li:last-of-type");
         this.$tabTitles.off("keydown.zf.tabs").on("keydown.zf.tabs", function(e) {
+            if (e.which === 9) return;
             e.stopPropagation();
             e.preventDefault();
             var $element = $(this), $elements = $element.parent("ul").children("li"), $prevElement, $nextElement;
@@ -9037,7 +9239,7 @@
                     return;
                 }
             });
-            Foundation.Keyboard.handleKey(e, _this, {
+            Foundation.Keyboard.handleKey(e, "Tabs", {
                 open: function() {
                     $element.find('[role="tab"]').focus();
                     _this._handleTabChange($element);
@@ -9123,7 +9325,7 @@
         this.className = "";
         this._init();
         this._events();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Toggler");
     }
     Toggler.defaults = {
         animate: false
@@ -9136,62 +9338,44 @@
             this.animationOut = input[1] || null;
         } else {
             input = this.$element.data("toggler");
-            if (input[0] === ".") {
-                this.className = input.slice(1);
-            } else {
-                this.className = input;
-            }
+            this.className = input[0] === "." ? input.slice(1) : input;
         }
         var id = this.$element[0].id;
         $('[data-open="' + id + '"], [data-close="' + id + '"], [data-toggle="' + id + '"]').attr("aria-controls", id);
-        if (this.$element.is(":hidden")) {
-            this.$element.attr("aria-expanded", "false");
-        }
+        this.$element.attr("aria-expanded", this.$element.is(":hidden") ? false : true);
     };
     Toggler.prototype._events = function() {
-        var _this = this;
-        this.$element.on("toggle.zf.trigger", function() {
-            _this.toggle();
-            return false;
-        });
+        this.$element.off("toggle.zf.trigger").on("toggle.zf.trigger", this.toggle.bind(this));
     };
     Toggler.prototype.toggle = function() {
-        if (!this.options.animate) {
-            this._toggleClass();
-        } else {
-            this._toggleAnimate();
-        }
+        this[this.options.animate ? "_toggleAnimate" : "_toggleClass"]();
     };
     Toggler.prototype._toggleClass = function() {
-        var _this = this;
         this.$element.toggleClass(this.className);
-        if (this.$element.hasClass(this.className)) {
+        var isOn = this.$element.hasClass(this.className);
+        if (isOn) {
             this.$element.trigger("on.zf.toggler");
         } else {
             this.$element.trigger("off.zf.toggler");
         }
-        _this._updateARIA();
+        this._updateARIA(isOn);
     };
     Toggler.prototype._toggleAnimate = function() {
         var _this = this;
         if (this.$element.is(":hidden")) {
             Foundation.Motion.animateIn(this.$element, this.animationIn, function() {
                 this.trigger("on.zf.toggler");
-                _this._updateARIA();
+                _this._updateARIA(true);
             });
         } else {
             Foundation.Motion.animateOut(this.$element, this.animationOut, function() {
                 this.trigger("off.zf.toggler");
-                _this._updateARIA();
+                _this._updateARIA(false);
             });
         }
     };
-    Toggler.prototype._updateARIA = function() {
-        if (this.$element.is(":hidden")) {
-            this.$element.attr("aria-expanded", "false");
-        } else {
-            this.$element.attr("aria-expanded", "true");
-        }
+    Toggler.prototype._updateARIA = function(isOn) {
+        this.$element.attr("aria-expanded", isOn ? true : false);
     };
     Toggler.prototype.destroy = function() {
         this.$element.off(".zf.toggler");
@@ -9212,7 +9396,7 @@
         this.isActive = false;
         this.isClick = false;
         this._init();
-        Foundation.registerPlugin(this);
+        Foundation.registerPlugin(this, "Tooltip");
     }
     Tooltip.defaults = {
         disableForTouch: false,
@@ -9382,7 +9566,6 @@
         });
         this.$element.on("focus.zf.tooltip", function(e) {
             isFocus = true;
-            console.log(_this.isClick);
             if (_this.isClick) {
                 return false;
             } else {
@@ -10183,6 +10366,7 @@ IASNoneLeftExtension.prototype.defaults = {
     CMS.windowResize = {
         init: function() {
             $(window).smartresize(function() {
+                $(".orbit").foundation();
                 notifications.sendNotification(notifications.WINDOW_RESIZE);
             });
         }
